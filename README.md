@@ -17,6 +17,10 @@ pip install -r requirements.txt
 You can then run `main.py` with the appropriate arguments to train and
 test the models.
 
+``` bash
+sbatch scripts/run_train.sh
+```
+
 ## Repository Structure
 
 -   **Config:** Contains configuration files for different experiments.
