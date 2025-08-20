@@ -1,0 +1,15 @@
+numpy
+pandas
+joblib
+matplotlib
+pillow
+scikit-learn
+scikit-image
+torch
+torchvision
+tqdm
+albumentations
+segmentation-models-pytorch
+plotly
+umap-learn
+neptune
