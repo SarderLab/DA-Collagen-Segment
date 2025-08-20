@@ -14,8 +14,7 @@ cd DA-Collagen-Segment
 pip install -r requirements.txt
 ```
 
-You can then run `main.py` with the appropriate arguments to train and
-test the models.
+You can then run training and testing using the provided SLURM script:
 
 ``` bash
 sbatch scripts/run_train.sh
