@@ -8,6 +8,7 @@ Data input pipeline for Deep-DA-DUET
 
 from: https://towardsdatascience.com/creating-and-training-a-u-net-model-with-pytorch-for-2d-3d-semantic-segmentation-dataset-fb1f7f80fe55
 """
+<<<<<<< HEAD
 
 # import os
 # import pandas as pd
@@ -26,6 +27,15 @@ from torch.utils.data import Dataset
 # from torchvision.transforms import ToTensor
 import albumentations
 
+=======
+import numpy as np
+from math import floor
+from skimage.io import imread#, imsave
+
+import torch
+from torch.utils.data import Dataset
+import albumentations
+>>>>>>> 11cd23f (init git branch)
 from skimage.transform import resize
 
 from Augmentation_Functions import *
