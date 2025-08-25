@@ -275,7 +275,7 @@ def make_training_set(phase,train_img_paths, train_tar, valid_img_paths, valid_t
             # For debugging:        
             from torch.utils.data import DataLoader
             # import matplotlib.pyplot as plt            
-            from CollagenSegUtils import visualize_continuous
+            from Utils import visualize_continuous
             
             train_loader = DataLoader(dataset_train, batch_size=1, shuffle=True, pin_memory=True)
             train_loader_iter = iter(train_loader)

@@ -17,7 +17,7 @@
         "model_file": "/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA/CGPL/models/Collagen_Seg_Model_Latest.pth",
         "output_dir": "/blue/pinaki.sarder/f.afsari/4-DUET/Debug/Results-DA/CGPL_Targets",
         "neptune": {
-            "project": "fafsari/Deep-DUET",
+            "project": "fafsari/DUET-DA",
             "source_files": [
                 "*.py",
                 "**/.py",
@@ -50,7 +50,7 @@
         "train_loss": "structural_loss",
         "lr": 0.0005,
         "batch_size": 2,
-        "step_num": 5,
+        "step_num": 1500,
         "save_step": 20,
         "k_disc": 1,
         "k_gen": 1,
