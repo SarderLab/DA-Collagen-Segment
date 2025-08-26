@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 24 08:39:49 2024
-
-@author: fafsari
-
 Generate segmentation metrics for selected model.
 
 See: https://plotly.com/python/roc-and-pr-curves/ for more examples and plotting reference

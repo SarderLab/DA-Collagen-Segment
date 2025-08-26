@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Aug 24 08:39:49 2024
 
-@author: fafsari
-
-"""
 
 import torch
 import torch.nn as nn

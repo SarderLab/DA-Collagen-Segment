@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 24 08:39:49 2024
-
-@author: fafsari
 
 Organizing inputs (JSON file) and running either training or testing
 

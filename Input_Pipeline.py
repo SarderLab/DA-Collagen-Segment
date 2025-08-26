@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 24 08:39:49 2024
-
-@author: fafsari
-
 Data input pipeline for Deep-DA-DUET
 
 from: https://towardsdatascience.com/creating-and-training-a-u-net-model-with-pytorch-for-2d-3d-semantic-segmentation-dataset-fb1f7f80fe55
