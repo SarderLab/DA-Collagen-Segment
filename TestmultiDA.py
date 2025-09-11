@@ -33,14 +33,10 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
 
     if 'scaler_means' not in model_details:
         test_parameters['model_details']['scaler_means'] = None
-        
-    encoder = model_details['encoder']
-    encoder_weights = model_details['encoder_weights']
-
+       
     # Loading clusterer to cluster latent features
     clusterer = Clusterer(test_parameters)
-
-    ann_classes = model_details['ann_classes']
+   
     active = model_details['active']
     target_type = model_details['target_type']
     output_dir = test_parameters['output_dir']
@@ -61,7 +57,7 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
     
     model = create_model(model_details, n_classes)
 
-    state_dict =torch.load(model_path, map_location=device)
+    state_dict = torch.load(model_path, map_location=device)
         
     # Update the state dict: rename 'combine_layers' to 'segmentation_head'
     if 'combine_layers.weight' in state_dict:
@@ -119,13 +115,7 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
         else:
             metrics_calculator = None
             testing_metrics_df = None
-        # print('Testing metrics dataframe initialized:', testing_metrics_df.columns, index=None)
-                
-        # Setting up iterator(s) to generate images from the validation dataset for prediction
-        # if isinstance(dataset_valid, list):
-        #     data_iterators = [iter(ds) for ds in dataset_valid]
-        # else:
-        #     data_iterators = iter(dataset_valid)
+        # print('Testing metrics dataframe initialized:', testing_metrics_df.columns, index=None)                
 
         all_latent_features = None
         clustering_labels = []

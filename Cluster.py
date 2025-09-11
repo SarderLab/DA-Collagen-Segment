@@ -23,6 +23,7 @@ from sklearn.preprocessing import StandardScaler
 import umap
 
 import segmentation_models_pytorch as smp
+from Models import create_model
 
 
 class Clusterer:
@@ -79,92 +80,69 @@ class Clusterer:
         else:
             plot = self.gen_plot(reduced_features,labels)
 
-    def load_model(self,model_file):
+    def load_model(self, model_file):
 
         model_details = self.parameters['model_details']
-        encoder = model_details['encoder']
-        encoder_weights = model_details['encoder_weights']
         target_type = model_details['target_type']
         ann_classes = model_details['ann_classes']
-        active = model_details['active']
-
-
+        
         if target_type=='binary':
             n_classes = len(ann_classes)
         else:
             n_classes = 1
 
         in_channels = int(self.parameters['preprocessing']['image_size'].split(',')[-1])
-
-        if model_details['architecture']=='Unet++':
-            self.model = smp.UnetPlusPlus(
-                encoder_name = encoder,
-                encoder_weights = encoder_weights,
-                in_channels = in_channels,
-                classes = n_classes,
-                activation = active
-            )
-
-        self.model.load_state_dict(torch.load(model_file))
+        
+        self.model = create_model(model_details, n_classes)
+        
+        if model_file is not None:
+            self.model.load_state_dict(torch.load(model_file, map_location=self.device))
         self.model.to(self.device)
         self.model.eval()
 
-    def extract_feature_loop(self,dataset):
-
-        with torch.no_grad():
-
-            test_dataloader = DataLoader(dataset)
-            print(f'length of dataset: {len(dataset)}')
-            labels = []
-            all_features = None
-
-            data_iterator = iter(test_dataloader)
-            with tqdm(range(len(dataset.images)),desc='Extracting Features') as pbar:
-                for i in range(0,len(dataset.images)):
+    def extract_feature_loop(self, dataset):
+        
+        labels = []
+        all_features = None
+        
+        with torch.no_grad():                
+            with tqdm(range(len(dataset)), desc=f'Extracting Features ') as pbar:
+                for i in range(len(dataset)):
+                    sample = dataset[i]
                     
-                    if dataset.patch_batch:
-
-                        n_patches = len(dataset.cached_data[i])
-                        image_name = dataset.cached_item_names[i]
-
-                        for n in range(0,n_patches):
-                            
-                            image, _, input_name = next(data_iterator)
-                            input_name = ''.join(input_name).split(os.sep)[-1]
-
-                            feature_maps = self.model.encoder(image.to(self.device))[-1]
+                    # ---------------- Feature Extraction Pipeline for large images ----------------
+                    if dataset.patch_batch:  #isinstance(sample[0], list):  
+                        # Large image → patch lists
+                        image_list, _, _ = sample
+                        
+                        for image in image_list:
+                            image = image[None, :, :, :]  # add batch dimension
+                            feature_maps = self.model.get_embeddings(image.to(self.device))[-1]
                             features = self.feature_post_extract(feature_maps)
 
                             if all_features is None:
                                 all_features = features.cpu().numpy()
                             else:
                                 features = features.cpu().numpy()
-                                all_features = np.concatenate((all_features,features),axis=0)
+                                all_features = np.concatenate((all_features, features), axis=0)
 
-                            labels.append(input_name)
+                            labels.append(f'image-{i+1}')
                             pbar.update(1)
                     else:
-
-                        try:
-                            image, _, input_name = next(data_iterator)
-                        except StopIteration:
-                            data_iterator = iter(data_iterator)
-                            image, _, input_name = next(data_iterator)
-                            
-                        input_name = ''.join(input_name).split(os.sep)[-1]
-                        
-                        feature_maps = self.model.encoder(image.to(self.device))[-1]
+                        image, _, _ = sample
+                        image = image[None, :, :, :]  # add batch dimension
+                        feature_maps = self.model.get_embeddings(image.to(self.device))[-1]
                         features = self.feature_post_extract(feature_maps)
 
                         if all_features is None:
                             all_features = features.cpu().numpy()
                         else:
                             features = features.cpu().numpy()
-                            all_features = np.concatenate((all_features,features),axis=0)
+                            all_features = np.concatenate((all_features, features), axis=0)
 
-                        labels.append(input_name)
+                        labels.append(f'image-{i+1}')
                         pbar.update(1)
-            
+                  
             print(f'shape of features: {np.shape(all_features)}')
                             
         return all_features, labels
@@ -172,7 +150,8 @@ class Clusterer:
     def save_features(self,features,col_labels,row_labels,file_name):
 
         features_df = pd.DataFrame(data = features, columns = col_labels, index = row_labels)
-        features_df.to_csv(self.output_folder+file_name)
+        features_df.to_csv(os.path.join(self.output_folder, file_name))
+        
 
     def reduce_features(self,features):
 
@@ -182,11 +161,11 @@ class Clusterer:
         scaler_vars = scaler.var_
 
         if self.save_scaler_properties:
-            output_mean_file = self.output_folder+'/scaler_means.npy'
+            output_mean_file = os.path.join(self.output_folder, 'scaler_means.npy')
             with open(output_mean_file, 'wb') as f:
                 np.save(f, scaler_means)
             
-            output_var_file = self.output_folder+'/scaler_var.npy'
+            output_var_file = os.path.join(self.output_folder, 'scaler_var.npy')
             with open(output_var_file,'wb') as f:
                 np.save(f, scaler_vars)
 
@@ -197,26 +176,26 @@ class Clusterer:
 
         # Saving umap_reducer to be used later
         if self.save_scaler_properties:
-            output_reducer_file = self.output_folder+'/umap_reducer.sav'
+            output_reducer_file = os.path.join(self.output_folder, 'umap_reducer.sav')
             joblib.dump(umap_reducer,output_reducer_file)
 
         return embedding
 
-    def gen_plot(self,umap_features,labels = None):
+    def gen_plot(self,umap_features, labels=None, title="UMAP of latent features"):
 
         if self.plot_labels is None:
             scatter_plot = px.scatter(
                 data_frame = pd.DataFrame(data=umap_features,columns = ['umap1','umap2'],index=labels),
                 x = 'umap1',
                 y='umap2',
-                title = "UMAP of latent features"
+                title = title
             )
 
-            output_umap_plots = self.output_folder+'UMAP_Plots/'
+            output_umap_plots = os.path.join(self.output_folder, 'UMAP_Plots')
             if not os.path.exists(output_umap_plots):
                 os.makedirs(output_umap_plots)
 
-            self.save_plot(scatter_plot,'UMAP_Plots/UMAP_Plot.png')
+            self.save_plot(scatter_plot,os.path.join(output_umap_plots,'UMAP_Plot.png')) 
             
         else:
             # self.plot_labels is a pandas DataFrame containing an "Image_Names" column that aligns with the "labels" passed to this function
@@ -228,7 +207,7 @@ class Clusterer:
             print(f'shape of merged: {merged_df.shape}')
 
             # Making output directory
-            output_umap_plots = self.output_folder+'UMAP_Plots/'
+            output_umap_plots = os.path.join(self.output_folder, 'UMAP_Plots')
             if not os.path.exists(output_umap_plots):
                 os.makedirs(output_umap_plots)
 
@@ -242,13 +221,13 @@ class Clusterer:
                     title = f'UMAP of latent features labeled with: {f}'
                 )
 
-                self.save_plot(scatter_plot,f'UMAP_Plots/UMAP_Plot_{f}.png')
+                self.save_plot(scatter_plot, os.path.join(output_umap_plots, f'UMAP_Plot_{f}.png'))
 
         return scatter_plot
 
-    def save_plot(self,plot,filename):
+    def save_plot(self, plot, filename):
 
-        plot.write_image(self.output_folder+'/'+filename)
+        plot.write_image(os.path.join(self.output_folder, filename))
 
     def cluster_in_loop(self,model,image):
 
@@ -258,14 +237,43 @@ class Clusterer:
 
         return features
     
-
-
-
-
-
-
-
-
-
-
-
+    def run_umap_multiple_datasets_before_after(self, datasets, dataset_names=None, trained_model_file=None):
+        """
+        Extract embeddings for multiple datasets and generate UMAPs
+        before and after training. Each dataset gets its own color.
+        """
+        
+        if dataset_names is None:
+            dataset_names = ["Source"]
+            for i in range(1, len(datasets)):
+                dataset_names.append(f"Target-{i}")
+        
+        all_labels = []
+        
+        # ---------- BEFORE TRAINING ----------
+        self.load_model(None)  # untrained
+        all_features_before = []
+        
+        for i, dataset in enumerate(datasets):
+            print(f"Extracting features for dataset: {dataset_names[i]}, type: {type(dataset)}")
+            features, _ = self.extract_feature_loop(dataset)
+            all_features_before.append(features)
+            all_labels.extend([dataset_names[i]] * features.shape[0])
+        
+        all_features_before = np.concatenate(all_features_before, axis=0)
+        embedding_before = self.reduce_features(all_features_before)
+        scatter_before = self.gen_plot(embedding_before, labels=all_labels, title="UMAP Before Training")
+        
+        # ---------- AFTER TRAINING ----------
+        self.load_model(trained_model_file)
+        all_features_after = []
+        
+        for i, dataset in enumerate(datasets):
+            features, _ = self.extract_feature_loop(dataset)
+            all_features_after.append(features)
+        
+        all_features_after = np.concatenate(all_features_after, axis=0)
+        embedding_after = self.reduce_features(all_features_after)
+        scatter_after = self.gen_plot(embedding_after, labels=all_labels, title="UMAP After Training")
+        
+        return scatter_before, scatter_after

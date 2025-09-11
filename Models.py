@@ -13,6 +13,80 @@ import segmentation_models_pytorch as smp
 from segmentation_models_pytorch.base.modules import Activation
 from torchvision.ops import SqueezeExcitation
 
+        
+class EnsembleModel(nn.Module):
+    def __init__(self,
+                 encoder_name,
+                encoder_weights,
+                 in_channels,
+                 active,
+                 n_classes,
+                 dropout_rate=0.1):
+        super().__init__()
+
+        self.encoder_name = encoder_name
+        self.encoder_weights = encoder_weights
+        self.in_channels = in_channels
+        self.active = active
+        self.n_classes = n_classes
+        self.dropout_rate = dropout_rate   
+        
+        if self.active == 'linear':
+            self.active = None
+            self.final_active = nn.Identity()
+        elif self.n_classes > 1:
+            self.final_active = nn.Softmax(dim=1)
+        elif self.n_classes == 1:
+            self.final_active = nn.Sigmoid()
+        else:
+            self.active = None
+            self.final_active = nn.ReLU()
+        
+        self.model_b = smp.UnetPlusPlus(
+            encoder_name = self.encoder_name,
+            encoder_weights = self.encoder_weights,
+            in_channels = int(self.in_channels/2),
+            classes = self.n_classes,
+            activation = self.active
+        )
+        
+        self.model_d = smp.UnetPlusPlus(
+            encoder_name = self.encoder_name,
+            encoder_weights = self.encoder_weights,
+            in_channels = int(self.in_channels/2),
+            classes = self.n_classes,
+            activation = self.active
+        )
+
+        self.segmentation_head = nn.Sequential(
+            nn.LazyConv2d(64, kernel_size=1),
+            nn.Dropout(p=self.dropout_rate),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, self.n_classes, kernel_size=1, bias=True)
+        )
+
+    def forward(self,input):
+
+        b_input = input[:, :int(self.in_channels/2), :, :]
+        d_input = input[:, int(self.in_channels/2):, :, :]
+        # print(f"b_input shape: {b_input.shape}, d_input shape: {d_input.shape}")
+        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
+        # print(f"b_output shape: {b_output.shape}, d_output shape: {d_output.shape}")
+        
+        combined_output = torch.cat((b_output,d_output),dim=1)
+        # print(f"combined_output shape: {combined_output.shape}")
+        
+        final_prediction = self.final_active(self.segmentation_head(combined_output))
+        # print(f"final_prediction shape: {final_prediction.shape}")
+        return final_prediction
+    def get_embeddings(self, input):
+        b_input = input[:, :int(self.in_channels/2), :, :]
+        d_input = input[:, int(self.in_channels/2):, :, :]
+        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
+        combined_output = torch.cat((b_output,d_output),dim=1)
+        return combined_output
 
 class SEBlock(nn.Module):
     '''
@@ -115,74 +189,6 @@ class EnsembleModelSE(nn.Module):
         
 
         return final_prediction
-        
-class EnsembleModel(nn.Module):
-    def __init__(self,
-                 encoder_name,
-                encoder_weights,
-                 in_channels,
-                 active,
-                 n_classes,
-                 dropout_rate=0.1):
-        super().__init__()
-
-        self.encoder_name = encoder_name
-        self.encoder_weights = encoder_weights
-        self.in_channels = in_channels
-        self.active = active
-        self.n_classes = n_classes
-        self.dropout_rate = dropout_rate   
-        
-        if self.active == 'linear':
-            self.active = None
-            self.final_active = nn.Identity()
-        elif self.n_classes > 1:
-            self.final_active = nn.Softmax(dim=1)
-        elif self.n_classes == 1:
-            self.final_active = nn.Sigmoid()
-        else:
-            self.active = None
-            self.final_active = nn.ReLU()
-        
-        self.model_b = smp.UnetPlusPlus(
-            encoder_name = self.encoder_name,
-            encoder_weights = self.encoder_weights,
-            in_channels = int(self.in_channels/2),
-            classes = self.n_classes,
-            activation = self.active
-        )
-        
-        self.model_d = smp.UnetPlusPlus(
-            encoder_name = self.encoder_name,
-            encoder_weights = self.encoder_weights,
-            in_channels = int(self.in_channels/2),
-            classes = self.n_classes,
-            activation = self.active
-        )
-
-        self.segmentation_head = nn.Sequential(
-            nn.LazyConv2d(64, kernel_size=1),
-            nn.Dropout(p=self.dropout_rate),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, self.n_classes, kernel_size=1, bias=True)
-        )
-
-    def forward(self,input):
-
-        b_input = input[:, :int(self.in_channels/2), :, :]
-        d_input = input[:, int(self.in_channels/2):, :, :]
-        # print(f"b_input shape: {b_input.shape}, d_input shape: {d_input.shape}")
-        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
-        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
-        # print(f"b_output shape: {b_output.shape}, d_output shape: {d_output.shape}")
-        
-        combined_output = torch.cat((b_output,d_output),dim=1)
-        # print(f"combined_output shape: {combined_output.shape}")
-        
-        final_prediction = self.final_active(self.segmentation_head(combined_output))
-        # print(f"final_prediction shape: {final_prediction.shape}")
-        return final_prediction    
-
 # Ensemble Model with CAM (Contour Attention Map)
 class CAM(nn.Module):
     def __init__(self, channels=32):
