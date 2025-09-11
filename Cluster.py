@@ -202,9 +202,15 @@ class Clusterer:
             # Update font styles
             scatter_plot.update_layout(
                 title=dict(text=title, font=dict(size=22, family="Arial", color="black")),
-                legend=dict(
-                    title=dict(text="<b>Legend</b>", font=dict(size=16, family="Arial", color="black")),
-                    font=dict(size=14, family="Arial", color="black")
+                legend=dict(                    
+                    font=dict(size=14, family="Arial", color="black"),
+                    x=0.95,          # horizontal position (1 = far right)
+                    y=0.95,          # vertical position (1 = top)
+                    xanchor='right', # align right side of legend at x
+                    yanchor='top',   # align top of legend at y
+                    bgcolor='rgba(255,255,255,0.5)', # semi-transparent background
+                    bordercolor='black',
+                    borderwidth=1
                 ),
                 xaxis=dict(
                     title=dict(text="<b>UMAP1</b>", font=dict(size=18)),
@@ -252,7 +258,12 @@ class Clusterer:
 
     def save_plot(self, plot, filename):
 
-        plot.write_image(os.path.join(self.output_folder, filename))
+        plot.write_image(
+            os.path.join(self.output_folder, filename),
+            width=2000,   # width in pixels
+            height=2000,  # height in pixels
+            scale=3       # scaling factor to increase DPI
+        )        
 
     def cluster_in_loop(self,model,image):
 
