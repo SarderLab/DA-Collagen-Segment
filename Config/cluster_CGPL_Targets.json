@@ -12,6 +12,7 @@
             "DUET": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/UCD_PATH/F", "/orange/pinaki.sarder/Davy_Jones_Locker/Farzad_Fibrosis/aim2/BIDMC RMF06 HE L21/F", "/orange/pinaki.sarder/Davy_Jones_Locker/Farzad_Fibrosis/aim2/Emory 43144/F"],
             "Brightfield": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/UCD_PATH/B", "/orange/pinaki.sarder/Davy_Jones_Locker/Farzad_Fibrosis/aim2/BIDMC RMF06 HE L21/B", "/orange/pinaki.sarder/Davy_Jones_Locker/Farzad_Fibrosis/aim2/Emory 43144/B"]
         },
+		"dataset_names": ["CGPL", "UCD-PATH", "BIDMC", "Emory"],
 		"output_dir":"/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA/CGPL_Targets/",
 		"model_file":"/blue/pinaki.sarder/narra.sr/8_DUET_Data/CGPL_DG/models/Collagen_Seg_Model_Latest_5.pth",
 		"preprocessing":{
@@ -24,7 +25,7 @@
             "encoder":"resnet34",
             "encoder_weights":"imagenet",
             "active":"sigmoid",
-            "target_type":"binary",
+            "target_type":"nonbinary",
             "in_channels":2,
             "ann_classes":"background,collagen"
         }

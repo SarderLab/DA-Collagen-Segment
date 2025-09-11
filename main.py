@@ -279,7 +279,7 @@ def main():
                     dataset_valid = AttrSubset(dataset_valid_all, test_idx)
 
                     # Ckecking if targets are available
-                    if isinstance(input_parameters['target_dir'][inp_type], str):
+                    if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
                         t_train_idx, t_test_idx = next(kf.split(t_image_paths))  # new split for target
                         
                         nept_run.assign({f'{k_count}_Target_Training_Set': [t_image_paths[i] for i in t_train_idx]})
@@ -289,7 +289,7 @@ def main():
                         dataset_valid_t = AttrSubset(dataset_valid_all_t, t_test_idx)
                         dataset_valid_t.testing_metrics = True
 
-                    elif isinstance(input_parameters['target_dir'][inp_type], list):
+                    elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):
                         # ---- Now handle targets: split EACH target separately ----
                         dataset_train_t = []
                         dataset_valid_t = []
@@ -454,14 +454,12 @@ def main():
         else:
             label_paths = []
         
-        if input_parameters['type']=='multi':
+        if input_parameters['type'] == 'multi':
             
             image_paths_base = []
             for inp_type in input_image_type:
                 if os.path.isdir(input_parameters['image_dir'][inp_type]):
-                    image_paths_base.append(sorted(glob(input_parameters['image_dir'][inp_type]+'/*')))
-                    # image_paths_base.append([os.path.join(input_parameters['image_dir'][inp_type], f) 
-                    #                          for f in os.listdir(input_parameters['image_dir'][inp_type])])
+                    image_paths_base.append(sorted(glob(input_parameters['image_dir'][inp_type]+'/*')))                    
                 elif os.path.isfile(input_parameters['image_dir'][inp_type]):
                     image_paths_base.append(sorted(pd.read_csv(input_parameters['image_dir'][inp_type])['Paths'].tolist()))
 
@@ -574,7 +572,8 @@ def main():
                     label_paths_run,
                     input_parameters
                 )
-                dataset_test.testing_metrics = True
+                dataset_test = AttrSubset(dataset_test, list(range(len(run_paths))))
+                dataset_test.testing_metrics = True                
             else:
                 _, dataset_test = make_training_set(
                     'test',
@@ -584,7 +583,7 @@ def main():
                     [],
                     input_parameters
                 )            
-
+                dataset_test = AttrSubset(dataset_test, list(range(len(run_paths))))
             Test_Network(model_file, dataset_test, nept_run, input_parameters)
             
             # Free up memory for efficiency
@@ -719,7 +718,7 @@ def main():
             label_paths,
             input_parameters
         )
-        
+        dataset_test = AttrSubset(dataset_test, list(range(len(image_paths))))
         if mode == "ADDA":
             dataset_test = [dataset_test]
             if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
@@ -732,6 +731,7 @@ def main():
                     t_label_paths,
                     input_parameters
                 )
+                dataset_test_t = AttrSubset(dataset_test_t, list(range(len(t_image_paths))))
                 dataset_test.append(dataset_test_t)
             elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):                                               
                 for t in range(len(t_image_paths)):
@@ -743,7 +743,8 @@ def main():
                         t_image_paths[t],
                         t_label_paths,
                         input_parameters
-                    )                    
+                    )
+                    dataset_test_t = AttrSubset(dataset_test_t, list(range(len(t_image_paths[t]))))
                     dataset_test.append(dataset_test_t)
         
         cluster_object = Clusterer(input_parameters)
