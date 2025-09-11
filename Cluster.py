@@ -147,13 +147,13 @@ class Clusterer:
                             
         return all_features, labels
 
-    def save_features(self,features,col_labels,row_labels,file_name):
+    def save_features(self,features, col_labels, row_labels, file_name):
 
-        features_df = pd.DataFrame(data = features, columns = col_labels, index = row_labels)
+        features_df = pd.DataFrame(data = features, columns=col_labels, index=row_labels)
         features_df.to_csv(os.path.join(self.output_folder, file_name))
         
 
-    def reduce_features(self,features):
+    def reduce_features(self, features, phase=None):
 
         scaler = StandardScaler().fit(features)
         # Saving the scaler information to the output directory
@@ -161,11 +161,11 @@ class Clusterer:
         scaler_vars = scaler.var_
 
         if self.save_scaler_properties:
-            output_mean_file = os.path.join(self.output_folder, 'scaler_means.npy')
+            output_mean_file = os.path.join(self.output_folder, f'scaler_means{phase}.npy')
             with open(output_mean_file, 'wb') as f:
                 np.save(f, scaler_means)
             
-            output_var_file = os.path.join(self.output_folder, 'scaler_var.npy')
+            output_var_file = os.path.join(self.output_folder, f'scaler_var{phase}.npy')
             with open(output_var_file,'wb') as f:
                 np.save(f, scaler_vars)
 
@@ -176,26 +176,51 @@ class Clusterer:
 
         # Saving umap_reducer to be used later
         if self.save_scaler_properties:
-            output_reducer_file = os.path.join(self.output_folder, 'umap_reducer.sav')
-            joblib.dump(umap_reducer,output_reducer_file)
+            output_reducer_file = os.path.join(self.output_folder, f'umap_reducer{phase}.sav')
+            joblib.dump(umap_reducer, output_reducer_file)
 
         return embedding
 
-    def gen_plot(self,umap_features, labels=None, title="UMAP of latent features"):
+    def gen_plot(self,umap_features, labels=None, title="UMAP of latent features", phase=None):
 
         if self.plot_labels is None:
-            scatter_plot = px.scatter(
-                data_frame = pd.DataFrame(data=umap_features,columns = ['umap1','umap2'],index=labels),
-                x = 'umap1',
-                y='umap2',
-                title = title
+            if labels is None:
+                scatter_plot = px.scatter(
+                    data_frame = pd.DataFrame(data=umap_features,columns = ['umap1','umap2'],index=labels),
+                    x = 'umap1',
+                    y='umap2',
+                    title = title
+                )
+            else:
+                scatter_plot = px.scatter(
+                    data_frame = pd.DataFrame(data=umap_features,columns = ['umap1','umap2'],index=labels),
+                    x = 'umap1',
+                    y='umap2',
+                    color = labels,
+                    title = title
+                )
+            # Update font styles
+            scatter_plot.update_layout(
+                title=dict(text=title, font=dict(size=22, family="Arial", color="black")),
+                legend=dict(
+                    title=dict(text="<b>Legend</b>", font=dict(size=16, family="Arial", color="black")),
+                    font=dict(size=14, family="Arial", color="black")
+                ),
+                xaxis=dict(
+                    title=dict(text="<b>UMAP1</b>", font=dict(size=18)),
+                    tickfont=dict(size=14, family="Arial", color="black")
+                ),
+                yaxis=dict(
+                    title=dict(text="<b>UMAP2</b>", font=dict(size=18)),
+                    tickfont=dict(size=14, family="Arial", color="black")
+                )
             )
 
             output_umap_plots = os.path.join(self.output_folder, 'UMAP_Plots')
             if not os.path.exists(output_umap_plots):
                 os.makedirs(output_umap_plots)
 
-            self.save_plot(scatter_plot,os.path.join(output_umap_plots,'UMAP_Plot.png')) 
+            self.save_plot(scatter_plot,os.path.join(output_umap_plots,f'UMAP_Plot{phase}.png')) 
             
         else:
             # self.plot_labels is a pandas DataFrame containing an "Image_Names" column that aligns with the "labels" passed to this function
@@ -251,20 +276,23 @@ class Clusterer:
         all_labels = []
         
         # ---------- BEFORE TRAINING ----------
+        print('='*30, "UMAP Before Training", '='*30)
         self.load_model(None)  # untrained
         all_features_before = []
         
         for i, dataset in enumerate(datasets):
-            print(f"Extracting features for dataset: {dataset_names[i]}, type: {type(dataset)}")
-            features, _ = self.extract_feature_loop(dataset)
+            print('-'*20, f"Extracting features for dataset: {dataset_names[i]}", '-'*20)
+            features, _ = self.extract_feature_loop(dataset)            
+            print(f"Feature Extraction Done for {dataset_names[i]} with shape: {features.shape}")
             all_features_before.append(features)
             all_labels.extend([dataset_names[i]] * features.shape[0])
         
         all_features_before = np.concatenate(all_features_before, axis=0)
-        embedding_before = self.reduce_features(all_features_before)
-        scatter_before = self.gen_plot(embedding_before, labels=all_labels, title="UMAP Before Training")
+        embedding_before = self.reduce_features(all_features_before, phase='_before')
+        scatter_before = self.gen_plot(embedding_before, labels=all_labels, title="UMAP Before Training", phase='_before')
         
         # ---------- AFTER TRAINING ----------
+        print('='*30, "UMAP After Training", '='*30)
         self.load_model(trained_model_file)
         all_features_after = []
         
@@ -273,7 +301,7 @@ class Clusterer:
             all_features_after.append(features)
         
         all_features_after = np.concatenate(all_features_after, axis=0)
-        embedding_after = self.reduce_features(all_features_after)
-        scatter_after = self.gen_plot(embedding_after, labels=all_labels, title="UMAP After Training")
+        embedding_after = self.reduce_features(all_features_after, phase='_after')
+        scatter_after = self.gen_plot(embedding_after, labels=all_labels, title="UMAP After Training", phase='_after')
         
         return scatter_before, scatter_after
