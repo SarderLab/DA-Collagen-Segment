@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 24 08:39:49 2024
-
-@author: fafsari
-
 Utilities included here for collagen segmentation task.  
 
 This includes:
@@ -115,54 +111,54 @@ def visualize_multi_task(images,output_type):
 
     return fig
 
+
 def visualize_continuous(images, output_type):
+    """
+    Visualizes images neatly in a grid. Applies colormap for prediction masks.
+    
+    images: dict of image_name -> image_array
+    output_type: 'comparison' or 'prediction'
+    """
+    
+    def prepare_image(img):
+        img = np.float32(img)
+        if len(img.shape) == 4:
+            img = img[0]  # take first batch if 4D
+        if img.shape[0] < img.shape[-1]:
+            img = np.moveaxis(img, 0, -1)
+        return img
 
     if output_type == 'comparison':
         n = len(images)
-        fig = plt.figure(figsize=(6, 3))
-        for i,key in enumerate(images):
+        # Automatically choose rows and columns
+        n_cols = min(n, 4)  # max 3 columns
+        n_rows = int(np.ceil(n / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(4*n_cols, 4*n_rows))
+        axes = np.array(axes).reshape(-1)  # flatten in case of single row/col
 
-            subfig = fig.add_subplot(1, n, i+1)
+        for i, (key, img_data) in enumerate(images.items()):
+            ax = axes[i]
+            img = prepare_image(img_data)
             
-            if len(np.shape(images[key])) == 4:
-                img = images[key][0,:,:,:]
-            # elif len(np.shape(images[key])) == 2:
-            else:
-                img = images[key]
-
-            img = np.float32(img)
-
-            if np.shape(img)[0]<np.shape(img)[-1]:
-                img = np.moveaxis(img, source=0, destination=-1)
-
             if 'Pred' in key or 'GT_Pred' in key or 'Ground_Truth' in key:
-                img = apply_colormap(img)
-
-                plt.imshow(img,cmap='jet')
+                img_to_show = apply_colormap(img)
             else:
-                # print("Image shape:", img.shape, key)
-                plt.imshow(img)
-            
-            plt.axis('off')
-            plt.title(key)
-            
-        plt.tight_layout()            
-        # output_fig = plt.gcf()
+                img_to_show = img
+
+            ax.imshow(img_to_show, cmap='jet' if 'Pred' in key else None)
+            ax.set_title(key, fontsize=10)
+            ax.axis('off')
+        
+        # Hide any extra axes
+        for j in range(i+1, len(axes)):
+            axes[j].axis('off')
+
+        plt.tight_layout()
         return fig
 
-    elif output_type=='prediction':
-        pred_mask = images['Pred_Mask']
-
-        if len(np.shape(pred_mask))==4:
-            pred_mask = pred_mask[0,:,:,:]
-
-        pred_mask = np.float32(pred_mask)
-
-        if np.shape(pred_mask)[0]<np.shape(pred_mask)[-1]:
-            pred_mask = np.moveaxis(pred_mask,source=0,destination = -1)
-
+    elif output_type == 'prediction':
+        pred_mask = prepare_image(images['Pred_Mask'])
         output_fig = apply_colormap(pred_mask)
-
         return output_fig
 
 def get_metrics(pred_mask,ground_truth,img_name,calculator,target_type):

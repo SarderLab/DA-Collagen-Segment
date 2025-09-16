@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug 19 10:28:08 2025
-
-@author: fafsari
-
 
 CS Testing best model
 

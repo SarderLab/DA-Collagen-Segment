@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 24 08:39:49 2024
-
-@author: fafsari
-
 DGCS Training Loop 
 
 from: https://github.com/qubvel/segmentation_models.pytorch/blob/master/examples/cars%20segmentation%20(camvid).ipynb

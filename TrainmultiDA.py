@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug 18 09:37:56 2025
-
-@author: fafsari
-
 
 from: https://github.com/qubvel/segmentation_models.pytorch/blob/master/examples/cars%20segmentation%20(camvid).ipynb
 

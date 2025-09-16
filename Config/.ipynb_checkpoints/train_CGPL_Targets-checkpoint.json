@@ -5,17 +5,17 @@
         "type": "multi",
         "overlapRate": 25,
         "image_dir": {
-            "DUET": "/blue/pinaki.sarder/f.afsari/4-DUET/Debug/CGPL/F",
-            "Brightfield": "/blue/pinaki.sarder/f.afsari/4-DUET/Debug/CGPL/B"
+            "DUET": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/CGPL/F",
+            "Brightfield": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/CGPL/B"
         },
         "target_dir": {
-            "DUET": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Emory/F","/blue/pinaki.sarder/narra.sr/8_DUET_Data/6_UCD-PATH_Patched_2_Tiles_Per_Patient/F","/blue/pinaki.sarder/narra.sr/8_DUET_Data/BIDMC/F"],
-            "Brightfield": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Emory/B", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/6_UCD-PATH_Patched_2_Tiles_Per_Patient/B", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/BIDMC/B"]
+            "DUET": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/Emory/F","/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/UCD_PATH/F","/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/BIDMC/F"],
+            "Brightfield": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/Emory/B", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/UCD_PATH/B", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/BIDMC/B"]
         },
-        "label_dir": "/blue/pinaki.sarder/f.afsari/4-DUET/Debug/CGPL/C",
-        "target_label_dir": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Emory/C", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/6_UCD-PATH_Patched_2_Tiles_Per_Patient/C", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/BIDMC/C"],
+        "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/CGPL/C",
+        "target_label_dir": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/Emory/C", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/UCD_PATH/C", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/BIDMC/C"],
         "model_file": "/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA/CGPL/models/Collagen_Seg_Model_Latest.pth",
-        "output_dir": "/blue/pinaki.sarder/narra.sr/7_Collagen/DA-Collagen-Segment/output2",
+        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_3_Results/CGPL_DA",
         "neptune": {
             "project":"srujithreddy.narra/DUET",
             "source_files": [
@@ -50,8 +50,8 @@
         "train_loss": "structural_loss",
         "lr": 0.0005,
         "batch_size": 2,
-        "step_num": 10,
-        "save_step": 5,
+        "step_num": 1500,
+        "save_step": 20,
         "k_disc": 1,
         "k_gen": 1,
         "preprocessing": {
