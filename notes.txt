@@ -6,7 +6,6 @@ Running Code:
 conda activate duet9-gpu
 
 
-
 export NEPTUNE_API_TOKEN="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJjZWQ3NDYzZS1jYzc4LTQ5ZDgtOWNhNS0yMDE2YTI1ODk2NmUifQ=="
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -17,4 +16,15 @@ python3 main.py Config/train_CGPL_Targets.json
 changed input_pipeline.py
 
 changed trainmultida.py
+
+
+
+#########Plotting Dependencies###########
+pip install -U kaleido
+conda install -c conda-forge chromium
+
+
+Before Plot:
+export KAL_CLI=chromium
+python3 main.py Config/cluster_CGPL_Targets.json 
 

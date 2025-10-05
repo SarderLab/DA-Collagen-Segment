@@ -1,14 +1,14 @@
 #!/bin/sh
 #SBATCH --qos=pinaki.sarder
-#SBATCH --job-name=CGPL_Tars
+#SBATCH --job-name=CG_Tars_D6
 #SBATCH --partition=hpg-turin
 #SBATCH --gpus=1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=50gb
+#SBATCH --mem-per-cpu=25gb
 #SBATCH --time=60:00:00
-#SBATCH --output=logs/data_v3/train_CGPL_Targets.out
+#SBATCH --output=logs/data_v6/train_CGPL_Targets.out
 
 date; pwd; hostname
 #module load singularity

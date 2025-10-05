@@ -545,7 +545,7 @@ def TrainingDA_Loop(model_path, dataset_train_s, dataset_valid_s, dataset_train_
                                    'ValidationLossTar':val_loss_list_t})
     # loss_df.to_csv(output_dir+'Training_Validation_Loss.csv')
     if "current_k_fold" in train_parameters:
-        loss_df.to_csv(output_dir+f'Training_Validation_Loss_{train_parameters["current_k_fold"]}.csv')
+        loss_df.to_csv(output_dir+f'_Training_Validation_Loss_{train_parameters["current_k_fold"]}.csv')
         modelsDA = {
             'Source Model': model_dir+f'Collagen_Seg_Model_Latest_{train_parameters["current_k_fold"]}.pth',
             'Target Model': model_dir+f'Collagen_Seg_Model_T_Latest_{train_parameters["current_k_fold"]}.pth'

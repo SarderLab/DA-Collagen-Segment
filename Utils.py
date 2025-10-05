@@ -161,56 +161,50 @@ def visualize_continuous(images, output_type):
         output_fig = apply_colormap(pred_mask)
         return output_fig
 
-def get_metrics(pred_mask,ground_truth,img_name,calculator,target_type):
-
+def get_metrics(pred_mask, ground_truth, img_name, calculator, target_type):
     metrics_row = {}
 
-    if target_type=='binary':
-        # edited_gt = ground_truth[:,1,:,:]
+    if target_type == 'binary':
+        # ---- Format ground truth ----
         if ground_truth.ndim == 4:
             if ground_truth.shape[1] > 1:
                 edited_gt = ground_truth[:, 1, :, :]
             else:
                 edited_gt = ground_truth[:, 0, :, :]
-            edited_gt = torch.unsqueeze(edited_gt,dim = 1)
+            edited_gt = torch.unsqueeze(edited_gt, dim=1)
         else:
-            edited_gt = ground_truth[:, :, :]            
-            
-        # edited_pred = pred_mask[:,1,:,:]
+            edited_gt = ground_truth[:, :, :]
+
+        # ---- Format prediction ----
         if pred_mask.shape[1] > 1:
             edited_pred = pred_mask[:, 1, :, :]
         else:
             edited_pred = pred_mask[:, 0, :, :]
-        edited_pred = torch.unsqueeze(edited_pred,dim = 1)
+        edited_pred = torch.unsqueeze(edited_pred, dim=1)
 
-            #print(f'edited pred_mask shape: {edited_pred.shape}')   
-            #print(f'edited ground_truth shape: {edited_gt.shape}')
-            #print(f'Unique values prediction mask : {torch.unique(edited_pred)}')
-            #print(f'Unique values ground truth mask: {torch.unique(edited_gt)}')
-
-        # Compute classification metrics
+        # ---- Classification metrics (binary masks) ----
         acc, dice, precision, recall, specificity = calculator(
-            torch.round(edited_gt), torch.round(edited_pred)
+            torch.round(edited_gt), torch.round(edited_pred / 255.0)  # normalize before rounding
         )
-        
-        y_true = torch.round(edited_gt).flatten().numpy()
-        y_pred = edited_pred.flatten().numpy()
 
-        # AUC
+        y_true = torch.round(edited_gt).flatten().numpy()
+        y_pred = (edited_pred / 255.0).flatten().numpy()  # normalize to [0,1]
+
+        # ---- AUC ----
         if len(np.unique(y_true)) < 2:
             auc = np.nan
         else:
             auc = roc_auc_score(y_true, y_pred)
 
-        # MSE
-        square_diff = (edited_gt.numpy() - edited_pred.numpy()) ** 2
+        # ---- MSE ----
+        square_diff = (edited_gt.numpy() - y_pred.reshape(edited_gt.shape)) ** 2
         mse = np.mean(square_diff)
 
-        # R^2 Score
+        # ---- R² ----
         try:
-            r2 = r2_score(edited_gt.flatten().numpy(), y_pred)
+            r2 = r2_score(y_true, y_pred)
         except:
-            r2 = np.nan  # fallback if something goes wrong
+            r2 = np.nan
 
         metrics_row['Accuracy'] = [round(acc.numpy().tolist(), 4)]
         metrics_row['Dice'] = [round(dice.numpy().tolist(), 4)]
@@ -220,49 +214,43 @@ def get_metrics(pred_mask,ground_truth,img_name,calculator,target_type):
         metrics_row['AUC'] = [round(auc, 4)]
         metrics_row['MSE'] = [round(mse, 4)]
         metrics_row['R2'] = [round(r2, 4)]
-        
-        #print(metrics_row)
-    elif target_type == 'nonbinary':
-        square_diff = (ground_truth.numpy()-pred_mask.numpy())**2
-        mse = np.mean(square_diff)
 
-        norm_mse = (square_diff-np.min(square_diff))/np.max(square_diff)
+    elif target_type == 'nonbinary':
+        square_diff = (ground_truth.numpy() - pred_mask.numpy()) ** 2
+        mse = np.mean(square_diff)
+        norm_mse = (square_diff - np.min(square_diff)) / np.max(square_diff)
         norm_mse = np.mean(norm_mse)
 
-        metrics_row['MSE'] = [round(mse,4)]
-        metrics_row['Norm_MSE']=[round(norm_mse,4)]
+        metrics_row['MSE'] = [round(mse, 4)]
+        metrics_row['Norm_MSE'] = [round(norm_mse, 4)]
 
     elif target_type == 'multi_task':
-        bin_gt = ground_truth[:,0,:,:]
-        bin_gt = torch.squeeze(bin_gt)
-        bin_pred = pred_mask[0,:,:]
-        
+        bin_gt = torch.squeeze(ground_truth[:, 0, :, :])
+        bin_pred = pred_mask[0, :, :]
 
-        acc, dice, precision, recall, sensitivity = calculator(bin_gt,torch.round(bin_pred))
-        metrics_row['Accuracy'] = [round(acc.numpy().tolist(),4)]
-        metrics_row['Dice'] = [round(dice.numpy().tolist(),4)]
-        metrics_row['Precision'] = [round(precision.numpy().tolist(),4)]
-        metrics_row['Recall'] = [round(recall.numpy().tolist(),4)]
-        metrics_row['Specificity'] = [round(specificity.numpy().tolist(),4)]
-        metrics_row['Sensitivity'] = [round(sensitivity.numpy().tolist(),4)]
+        acc, dice, precision, recall, specificity = calculator(
+            bin_gt, torch.round(bin_pred / 255.0)  # normalize before rounding
+        )
+        metrics_row['Accuracy'] = [round(acc.numpy().tolist(), 4)]
+        metrics_row['Dice'] = [round(dice.numpy().tolist(), 4)]
+        metrics_row['Precision'] = [round(precision.numpy().tolist(), 4)]
+        metrics_row['Recall'] = [round(recall.numpy().tolist(), 4)]
+        metrics_row['Specificity'] = [round(specificity.numpy().tolist(), 4)]
 
-        reg_gt = ground_truth[:,1,:,:]
-        reg_gt = torch.squeeze(reg_gt)
-        reg_pred = pred_mask[1,:,:]
+        reg_gt = torch.squeeze(ground_truth[:, 1, :, :])
+        reg_pred = pred_mask[1, :, :]
 
-        square_diff = (reg_gt.numpy()-reg_pred.numpy())**2
+        square_diff = (reg_gt.numpy() - reg_pred.numpy()) ** 2
         mse = np.mean(square_diff)
-
-        norm_mse = (square_diff-np.min(square_diff))/np.max(square_diff)
+        norm_mse = (square_diff - np.min(square_diff)) / np.max(square_diff)
         norm_mse = np.mean(norm_mse)
 
-        metrics_row['MSE'] = [round(mse,4)]
-        metrics_row['Norm_MSE'] = [round(norm_mse,4)]
-
+        metrics_row['MSE'] = [round(mse, 4)]
+        metrics_row['Norm_MSE'] = [round(norm_mse, 4)]
 
     metrics_row['ImgLabel'] = img_name
-
     return metrics_row
+
 
 # Function to resize and apply any condensing transform like grayscale conversion
 def resize_special(img,output_size,transform):

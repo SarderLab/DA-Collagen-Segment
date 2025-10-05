@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed Aug 24 08:39:49 2024
+
+@author: fafsari
 
 Organizing inputs (JSON file) and running either training or testing
 
@@ -105,7 +108,7 @@ def main():
     else:
         nept_run = FakeNeptune()
 
-    if input_parameters['phase']=='train':
+    if input_parameters['phase'] == 'train':
 
         training_parameters = parameters['train_parameters']
         # Path to folder containing ground truth images    
@@ -153,6 +156,7 @@ def main():
             image_paths_base = []
             if mode == "ADDA":
                 t_image_paths_base = []
+                t_image_paths = [] 
                 
             for inp_type in input_image_type:
                 # print(inp_type,input_parameters['image_dir'][inp_type])
@@ -160,8 +164,8 @@ def main():
                     image_paths_base.append(sorted(glob(input_parameters['image_dir'][inp_type]+'/*')))
                 if mode == "ADDA":
                     if isinstance(input_parameters['target_dir'][inp_type], str):
-                        if os.path.isdir(input_parameters['target_dir']):
-                            t_image_paths_base.append(sorted(glob(input_parameters['target_dir']+'/*')))
+                        if os.path.isdir(input_parameters['target_dir'][inp_type]):
+                            t_image_paths_base.append(sorted(glob(input_parameters['target_dir'][inp_type]+'/*')))
                     elif isinstance(input_parameters['target_dir'][inp_type], list):
                         
                         inp_type_paths = []
@@ -184,13 +188,17 @@ def main():
             image_paths = [[f, b] for f, b in zip(image_paths_base[0], image_paths_base[1])]            
                 
             if mode == "ADDA":
-                t_image_paths = []
-                if isinstance(input_parameters['target_dir'][inp_type], str):
-                    if os.path.isdir(input_parameters['target_dir'][inp_type]):
-                        t_image_paths_base.append(sorted(glob(input_parameters['target_dir'][inp_type]+'/*')))
-                    elif os.path.isfile(input_parameters['target_dir'][inp_type]):
-                        image_paths_base.append(sorted(pd.read_csv(input_parameters['target_dir'][inp_type])['Paths'].tolist()))
-                elif isinstance(input_parameters['target_dir'][inp_type], list):
+                # t_image_paths = []
+                if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
+                    if os.path.isdir(input_parameters['target_dir'][input_image_type[0]]):                        
+                        F_paths = t_image_paths_base[0]
+                        B_paths = t_image_paths_base[1]
+                        t_image_paths = [[f, b] for f, b in zip(F_paths, B_paths)]
+                        
+                    elif os.path.isfile(input_parameters['target_dir'][input_image_type[0]]):
+                        image_paths_base.append(sorted(pd.read_csv(input_parameters['target_dir'][input_image_type[0]])['Paths'].tolist()))
+                    print(f"Target: {len(t_image_paths)} paired images")
+                elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):
                     for t in range(len(input_parameters['target_dir'][input_image_type[0]])):
                         F_paths = t_image_paths_base[0][t]
                         B_paths = t_image_paths_base[1][t]
@@ -219,7 +227,7 @@ def main():
         )
 
         if mode == "ADDA":
-            if isinstance(input_parameters['target_dir'][inp_type], str):
+            if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
                 dataset_train_all_t, dataset_valid_all_t = make_training_set(
                     phase='train',
                     train_img_paths=t_image_paths,
@@ -229,7 +237,7 @@ def main():
                     parameters=training_parameters,
                     ema=True
                 )
-            elif isinstance(input_parameters['target_dir'][inp_type], list):
+            elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):
                 dataset_train_all_t = []
                 dataset_valid_all_t = []
                 
@@ -248,77 +256,95 @@ def main():
                     dataset_valid_all_t.append(valid_all_t)
 
         # Now determining which images are used for training and which are used for testing
+
+        # --- K-Fold Split ---
         if 'k-fold' in training_parameters['train_test_split']:
-            
-            # Splitting into k folds
-            kf = KFold(n_splits = int(training_parameters['train_test_split']['k-fold']),shuffle=True, random_state=42)
-            
+
+            kf = KFold(
+                n_splits=int(training_parameters['train_test_split']['k-fold']),
+                shuffle=True,
+                random_state=42
+            )
+
             k_count = 0
-            
+
             if mode == "ADDA":
-                # Iterate over folds of the SOURCE data
-                for train_idx, test_idx in kf.split(image_paths):
-                    k_count += 1
+                # Precompute source splits
+                source_splits = list(kf.split(image_paths))
+
+                # Precompute target splits
+                if isinstance(t_image_paths, list) and isinstance(t_image_paths[0], list):
+                    target_splits_list = [list(kf.split(t_paths)) for t_paths in t_image_paths]
+                else:
+                    target_splits_list = [list(kf.split(t_image_paths))]
+
+                # Iterate over folds
+                for k_count, source_fold in enumerate(source_splits, 1):
                     print("-"*50, f'On k-fold: {k_count}', "-"*50)
                     training_parameters["current_k_fold"] = k_count
 
-                    train_idx = list(train_idx.astype(int))
-                    test_idx  = list(test_idx.astype(int))
+                    # Source train/test indices
+                    train_idx, test_idx = source_fold
 
-                    nept_run.assign({f'{k_count}_Training_Set': [image_paths[i] for i in train_idx]})
-                    nept_run.assign({f'{k_count}_Testing_Set':  [image_paths[i] for i in test_idx]})
-
+                    # Source datasets (memory-efficient view)
                     dataset_train = AttrSubset(dataset_train_all, train_idx)
                     dataset_valid = AttrSubset(dataset_valid_all, test_idx)
 
-                    # Ckecking if targets are available
-                    if isinstance(input_parameters['target_dir'][inp_type], str):
-                        t_train_idx, t_test_idx = next(kf.split(t_image_paths))  # new split for target
-                        
-                        nept_run.assign({f'{k_count}_Target_Training_Set': [t_image_paths[i] for i in t_train_idx]})
-                        nept_run.assign({f'{k_count}_Target_Testing_Set':  [t_image_paths[i] for i in t_test_idx]})
+                    # Neptune logging: indices only
+                    nept_run.assign({f'{k_count}_Training_Idx': train_idx.tolist()})
+                    nept_run.assign({f'{k_count}_Testing_Idx': test_idx.tolist()})
 
-                        dataset_train_t = AttrSubset(dataset_train_all_t, t_train_idx)
-                        dataset_valid_t = AttrSubset(dataset_valid_all_t, t_test_idx)
+                    # --- Targets ---
+                    dataset_train_t_list = []
+                    dataset_valid_t_list = []
+
+                    for t_idx, t_splits in enumerate(target_splits_list):
+                        t_train_idx, t_test_idx = t_splits[k_count - 1]
+
+                        # Neptune logging: indices only
+                        nept_run.assign({f'{k_count}_Target{t_idx+1}_Training_Idx': t_train_idx.tolist()})
+                        nept_run.assign({f'{k_count}_Target{t_idx+1}_Testing_Idx': t_test_idx.tolist()})
+
+                        # Build datasets
+                        dataset_train_t = AttrSubset(dataset_train_all_t[t_idx], t_train_idx)
+                        dataset_valid_t = AttrSubset(dataset_valid_all_t[t_idx], t_test_idx)
                         dataset_valid_t.testing_metrics = True
 
-                    elif isinstance(input_parameters['target_dir'][inp_type], list):
-                        # ---- Now handle targets: split EACH target separately ----
-                        dataset_train_t = []
-                        dataset_valid_t = []
-                        for t, t_paths in enumerate(t_image_paths):
-                            t_train_idx, t_test_idx = next(kf.split(t_paths))  # new split per target
-                            t_train_idx = list(t_train_idx.astype(int))
-                            t_test_idx  = list(t_test_idx.astype(int))
+                        dataset_train_t_list.append(dataset_train_t)
+                        dataset_valid_t_list.append(dataset_valid_t)
 
-                            nept_run.assign({f'{k_count}_Target{t+1}_Training_Set': [t_paths[i] for i in t_train_idx]})
-                            nept_run.assign({f'{k_count}_Target{t+1}_Testing_Set':  [t_paths[i] for i in t_test_idx]})
-
-                            dataset_train_t.append(AttrSubset(dataset_train_all_t[t], t_train_idx))
-                            dataset_valid_t.append(AttrSubset(dataset_valid_all_t[t], t_test_idx))
-                        for t in range(len(dataset_valid_t)):
-                            # Set testing metrics for each target dataset
-                            dataset_valid_t[i].testing_metrics = True
-                                        
+                    # --- Train the ADDA models for this fold ---
                     modelsDA = TrainingDA_Loop(
                         input_parameters["model_file"], 
-                        dataset_train_s = dataset_train, 
-                        dataset_valid_s = dataset_valid,
-                        dataset_train_t = dataset_train_t, 
-                        dataset_valid_t = dataset_valid_t,
-                        train_parameters = training_parameters,
+                        dataset_train_s=dataset_train, 
+                        dataset_valid_s=dataset_valid,
+                        dataset_train_t=dataset_train_t_list, 
+                        dataset_valid_t=dataset_valid_t_list,
+                        train_parameters=training_parameters,
                         nept_run=nept_run
                     )
-                    # Test the Source and Target models separately                    
-                    training_parameters["model_details"]["target_type"] = "binary"                    
+
+                    # --- Test Source and Target models ---
+                    training_parameters["model_details"]["target_type"] = "binary"
                     training_parameters["mode"] += "_Source"
-                    print("-"*50,"Testing Source Model""-"*50,)
-                    Test_Network(modelsDA["Source Model"], dataset_valid_t, nept_run, training_parameters)
+                    print("-"*50, "Testing Source Model", "-"*50)
+                    Test_Network(modelsDA["Source Model"], dataset_valid_t_list, nept_run, training_parameters)
+
                     training_parameters["mode"] = training_parameters["mode"].replace("_Source", "_Target")
-                    print("-"*50,"Testing Target Model""-"*50,)
-                    Test_Network(modelsDA["Target Model"], dataset_valid_t, nept_run, training_parameters)                    
+                    print("-"*50, "Testing Target Model", "-"*50)
+                    Test_Network(modelsDA["Target Model"], dataset_valid_t_list, nept_run, training_parameters)
+
+                    # --- Cleanup to free memory ---
+                    del dataset_train, dataset_valid
+                    del dataset_train_t_list, dataset_valid_t_list
+                    del modelsDA
+                    gc.collect()
+
+                    # Reset mode and target_type for next fold
                     training_parameters["mode"] = "ADDA"
                     training_parameters["model_details"]["target_type"] = "nonbinary"
+
+
 
             else:
                 # Standard k-fold for source only
@@ -447,14 +473,13 @@ def main():
         else:
             label_paths = []
         
-        if input_parameters['type']=='multi':
+        if input_parameters['type'] == 'multi':
+            
             
             image_paths_base = []
             for inp_type in input_image_type:
                 if os.path.isdir(input_parameters['image_dir'][inp_type]):
-                    image_paths_base.append(sorted(glob(input_parameters['image_dir'][inp_type]+'/*')))
-                    # image_paths_base.append([os.path.join(input_parameters['image_dir'][inp_type], f) 
-                    #                          for f in os.listdir(input_parameters['image_dir'][inp_type])])
+                    image_paths_base.append(sorted(glob(input_parameters['image_dir'][inp_type]+'/*')))                    
                 elif os.path.isfile(input_parameters['image_dir'][inp_type]):
                     image_paths_base.append(sorted(pd.read_csv(input_parameters['image_dir'][inp_type])['Paths'].tolist()))
 
@@ -567,7 +592,8 @@ def main():
                     label_paths_run,
                     input_parameters
                 )
-                dataset_test.testing_metrics = True
+                dataset_test = AttrSubset(dataset_test, list(range(len(run_paths))))
+                dataset_test.testing_metrics = True                
             else:
                 _, dataset_test = make_training_set(
                     'test',
@@ -577,7 +603,7 @@ def main():
                     [],
                     input_parameters
                 )            
-
+                dataset_test = AttrSubset(dataset_test, list(range(len(run_paths))))
             Test_Network(model_file, dataset_test, nept_run, input_parameters)
             
             # Free up memory for efficiency
@@ -589,19 +615,24 @@ def main():
         spent_time = end_time - start_time
         print("Time spent to test is:", int(spent_time // 60), "minutes and", int(spent_time % 60), "seconds")
 
-    elif input_parameters['phase']=='cluster':
+    elif input_parameters['phase'] == 'cluster':
 
         # Inputs are the same as testing but instead of predicting, just generating some clustering/relative clustering of latent features
         input_image_type = list(input_parameters['image_dir'].keys())
         label_paths = []
+        if mode == "ADDA":
+            t_label_paths = []
 
         if not os.path.exists(input_parameters['output_dir']):
             os.makedirs(input_parameters['output_dir'])
-
         
-        if input_parameters['type']=='multi':
+        if input_parameters['type'] == 'multi':
 
             image_paths_base = []
+            if mode == "ADDA":
+                t_image_paths_base = []
+                t_image_paths = [] 
+                
             for inp_type in input_image_type:
                 if os.path.isdir(input_parameters['image_dir'][inp_type]):
                     image_paths_base.append(sorted(glob(input_parameters['image_dir'][inp_type]+'/*')))
@@ -610,8 +641,47 @@ def main():
                 else:
                     print(input_parameters['image_dir'][inp_type])
                     image_paths_base = []
+                
+                if mode == "ADDA":
+                    if isinstance(input_parameters['target_dir'][inp_type], str):
+                        if os.path.isdir(input_parameters['target_dir'][inp_type]):
+                            t_image_paths_base.append(sorted(glob(input_parameters['target_dir'][inp_type]+'/*')))
+                    elif isinstance(input_parameters['target_dir'][inp_type], list):
+                        
+                        inp_type_paths = []
+                        
+                        for t_path in input_parameters['target_dir'][inp_type]:           
+                            if os.path.isdir(t_path):
+                                inp_type_paths.append(sorted(glob(t_path+'/*')))
+                            elif os.path.isfile(t_path):
+                                inp_type_paths.append(sorted(pd.read_csv(t_path)['Paths'].tolist()))
+                            else:
+                                print('No target images!')
+                        t_image_paths_base.append(inp_type_paths)
 
-            image_paths = [list(i) for i in zip(*image_paths_base)]
+            for i , inp_type in enumerate(input_image_type):
+                print(f"Input type: {inp_type}, Number of Source images: {len(image_paths_base[i])}")
+            # image_paths = [list(i) for i in zip(*image_paths_base)]
+            image_paths = [[f, b] for f, b in zip(image_paths_base[0], image_paths_base[1])]
+
+            if mode == "ADDA":                
+                if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
+                    F_paths = t_image_paths_base[0]
+                    B_paths = t_image_paths_base[1]
+                    t_image_paths = [[f, b] for f, b in zip(F_paths, B_paths)]        
+                    # t_image_paths.append(image_paths_t)
+                    print(f"Target: {len(t_image_paths)} paired images")
+                    
+                elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):
+                    t_image_paths = []
+                    for t in range(len(input_parameters['target_dir'][input_image_type[0]])):
+                        F_paths = t_image_paths_base[0][t]
+                        B_paths = t_image_paths_base[1][t]
+                        image_paths_t = [[f, b] for f, b in zip(F_paths, B_paths)]        
+                        t_image_paths.append(image_paths_t)                
+        
+                    for i, paths in enumerate(t_image_paths):
+                        print(f"Target {i+1}: {len(paths)} paired images")
 
         elif input_parameters['type']=='single':
             if os.path.isdir(input_parameters['image_dir'][input_image_type[0]]):
@@ -660,8 +730,8 @@ def main():
 
         input_parameters['model_details'] = model_details
         input_parameters['preprocessing'] = preprocessing
-
-        nothin, dataset_test = make_training_set(
+        print(f"Creating dataset for the source")
+        _, dataset_test = make_training_set(
             'test',
             None,
             None,
@@ -669,26 +739,65 @@ def main():
             label_paths,
             input_parameters
         )
+        dataset_test = AttrSubset(dataset_test, list(range(len(image_paths))))
+        if mode == "ADDA":
+            dataset_test = [dataset_test]
+            if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
+                print(f"Creating dataset for the target")
+                _, dataset_test_t = make_training_set(
+                    'test',
+                    None,
+                    None,
+                    t_image_paths,
+                    t_label_paths,
+                    input_parameters
+                )
+                dataset_test_t = AttrSubset(dataset_test_t, list(range(len(t_image_paths))))
+                dataset_test.append(dataset_test_t)
+            elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):                                               
+                for t in range(len(t_image_paths)):
+                    print(f"Creating dataset for target {t+1}")
+                    _, dataset_test_t = make_training_set(
+                        'test',
+                        None,
+                        None,
+                        t_image_paths[t],
+                        t_label_paths,
+                        input_parameters
+                    )
+                    dataset_test_t = AttrSubset(dataset_test_t, list(range(len(t_image_paths[t]))))
+                    dataset_test.append(dataset_test_t)
+        
+        cluster_object = Clusterer(input_parameters)
+        # scatter_plot_before, scatter_plot_after = cluster_object.run_umap_multiple_datasets_before_after(model_file,dataset_test)
+        cluster_object.run_umap_multiple_datasets_before_after(
+            dataset_test, 
+            dataset_names=input_parameters["dataset_names"] if "dataset_names" in input_parameters else None,
+            trained_model_file=model_file)
+        
+        # Saving plots
+        # scatter_plot_before.savefig(input_parameters['output_dir']+'/UMAP_Plots/Before_Training.png',dpi=300)
+        # scatter_plot_after.savefig(input_parameters['output_dir']+'/UMAP_Plots/After_Training.png',dpi=300)
+        
+        # # Getting labels from model_version
+        # model_version['Merged_Results_Table'].download(input_parameters['output_dir']+'/Merged_Results_Table.csv')
+        # plot_labels = pd.read_csv(input_parameters['output_dir']+'Merged_Results_Table.csv',header = 0)
 
-        # Getting labels from model_version
-        model_version['Merged_Results_Table'].download(input_parameters['output_dir']+'/Merged_Results_Table.csv')
-        plot_labels = pd.read_csv(input_parameters['output_dir']+'Merged_Results_Table.csv',header = 0)
+        # cluster_object = Clusterer(input_parameters,plot_labels = plot_labels)
+        # cluster_object.run_clustering_iterator(model_file,dataset_test)
 
-        cluster_object = Clusterer(input_parameters,plot_labels = plot_labels)
-        cluster_object.run_clustering_iterator(model_file,dataset_test)
-
-        # Uploading data to model_version metadata (if specified)
-        upload_to_model_version = True
-        if upload_to_model_version:
-            model_version['UMAP_coordinates'].upload(input_parameters['output_dir']+'Extracted_UMAP_Coordinates.csv')
+        # # Uploading data to model_version metadata (if specified)
+        # upload_to_model_version = True
+        # if upload_to_model_version:
+        #     model_version['UMAP_coordinates'].upload(input_parameters['output_dir']+'Extracted_UMAP_Coordinates.csv')
             
-            umap_plots = os.listdir(input_parameters['output_dir']+'UMAP_Plots/')
-            for u in umap_plots:
-                model_version[f'UMAP_Plots/{u}'].upload(input_parameters['output_dir']+f'UMAP_Plots/{u}')
+        #     umap_plots = os.listdir(input_parameters['output_dir']+'UMAP_Plots/')
+        #     for u in umap_plots:
+        #         model_version[f'UMAP_Plots/{u}'].upload(input_parameters['output_dir']+f'UMAP_Plots/{u}')
 
-        model_version['UMAP_Scaler/scaler_means'].upload(input_parameters['output_dir']+f'scaler_means.npy')
-        model_version['UMAP_Scaler/scaler_var'].upload(input_parameters['output_dir']+f'scaler_var.npy')
-        model_version['UMAP_Scaler/umap_reducer'].upload(input_parameters['output_dir']+f'umap_reducer.sav')
+        # model_version['UMAP_Scaler/scaler_means'].upload(input_parameters['output_dir']+f'scaler_means.npy')
+        # model_version['UMAP_Scaler/scaler_var'].upload(input_parameters['output_dir']+f'scaler_var.npy')
+        # model_version['UMAP_Scaler/umap_reducer'].upload(input_parameters['output_dir']+f'umap_reducer.sav')
 
 if __name__=='__main__':
     main()

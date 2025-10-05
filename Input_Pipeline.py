@@ -1,28 +1,21 @@
 # -*- coding: utf-8 -*-
 """
+Created on Wed Aug 24 08:39:49 2024
+
+@author: fafsari
+
 Data input pipeline for Deep-DA-DUET
 
 from: https://towardsdatascience.com/creating-and-training-a-u-net-model-with-pytorch-for-2d-3d-semantic-segmentation-dataset-fb1f7f80fe55
 """
 
-# import os
-# import pandas as pd
 import numpy as np
-from math import floor, ceil
-
-# from tqdm import tqdm
-# import matplotlib.pyplot as plt
-from skimage.io import imread#, imsave
-# from glob import glob
-
-# from random import sample
+from math import floor
+from skimage.io import imread
 
 import torch
 from torch.utils.data import Dataset
-# from torchvision.transforms import ToTensor
 import albumentations
-
-from albumentations import Affine
 
 from skimage.transform import resize
 
@@ -246,15 +239,7 @@ def make_training_set(phase,train_img_paths, train_tar, valid_img_paths, valid_t
         transforms_training = ComposeDouble([
             AlbuSeg2d(albumentations.HorizontalFlip(p=0.5)),
             AlbuSeg2d(albumentations.RandomBrightnessContrast(p=0.2)),
-            AlbuSeg2d(
-        Affine(
-            translate_percent={"x": 0.0625, "y": 0.0625},  # same as shift_limit
-            scale=(0.5, 1.5),  # scale_limit=0.5 → 0.5–1.5
-            rotate=(-45, 45),  # same as rotate_limit
-            interpolation=1,
-            p=0.1
-        )
-    ),
+            AlbuSeg2d(albumentations.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.5,rotate_limit=45,interpolation=1,p=0.1)),
             AlbuSeg2d(albumentations.VerticalFlip(p=0.5)),
             FunctionWrapperDouble(np.moveaxis, input=True, target=True,source=-1,destination=0)
         ])

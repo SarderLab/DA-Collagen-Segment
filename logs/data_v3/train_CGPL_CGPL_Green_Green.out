@@ -1,0 +1,17 @@
+Tue Sep 30 08:22:54 PM EDT 2025
+/blue/pinaki.sarder/narra.sr/DUET
+c0606a-s4.ufhpc
+
+Currently Loaded Modules:
+  1) git/2.30.1   2) jupyter/6.5.4   3) conda/25.7.0
+
+ 
+
+Traceback (most recent call last):
+  File "/blue/pinaki.sarder/narra.sr/DUET/main.py", line 785, in <module>
+    main()
+  File "/blue/pinaki.sarder/narra.sr/DUET/main.py", line 88, in main
+    parameters = json.load(open(parameters_file))   
+                           ^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'Config/train_CGPL__CGPL_Green_Green.json'
+Running completed in: 0:1:53 Hours:Minutes:Seconds

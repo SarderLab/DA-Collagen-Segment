@@ -5,17 +5,17 @@
         "type": "multi",
         "overlapRate": 25,
         "image_dir": {
-            "DUET": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/UCD_PATH/F",
-            "Brightfield": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/UCD_PATH/B"
+            "DUET": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/F",
+            "Brightfield": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/B"
         },
         "target_dir": {
-            "DUET": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/CGPL/F"],
-            "Brightfield": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/CGPL/B"]
+            "DUET": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/CGPL/F"],
+            "Brightfield": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/CGPL/B"]
         },
-        "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/UCD_PATH/C",
-        "target_label_dir": [ "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_3/CGPL/C"],
+        "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/C",
+        "target_label_dir": [ "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/CGPL/C"],
         "model_file": "/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA/UCD_PATH/models/Collagen_Seg_Model_Latest.pth",
-        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_3_Results/UCD_PATH_CGPL",
+        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_6_Results/UCD_PATH_CGPL",
         "neptune": {
             "project":"srujithreddy.narra/DUET",
             "source_files": [
@@ -25,7 +25,7 @@
                 "**/.json"
             ],
             "tags": [
-                "Ensemble UCD_PATH --> CGPL 5fold_CV model"
+                "PA->CG_D6"
             ]
         }
     },
