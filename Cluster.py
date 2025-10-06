@@ -203,6 +203,7 @@ class Clusterer:
             scatter_plot.update_layout(
                 title=dict(text=title, font=dict(size=22, family="Arial", color="black")),
                 legend=dict(                    
+                    title=dict(text="", font=dict(size=6, family="Arial", color="black")),
                     font=dict(size=14, family="Arial", color="black"),
                     x=0.95,          # horizontal position (1 = far right)
                     y=0.95,          # vertical position (1 = top)
@@ -261,8 +262,8 @@ class Clusterer:
         plot.write_image(
             os.path.join(self.output_folder, filename),
             width=2000,   # width in pixels
-            height=2000,  # height in pixels
-            scale=3       # scaling factor to increase DPI
+            height=1500,  # height in pixels
+            scale=1       # scaling factor to increase DPI
         )        
 
     def cluster_in_loop(self,model,image):

@@ -70,14 +70,14 @@ class Feature_Extractor:
             valid_exts = (".tif", ".tiff", ".png", ".jpg", ".jpeg")
             print(f'Collecting images from: {folder}')
             files = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in valid_exts]
-            print(f'Found {len(files)} files in {folder}')
+            # print(f'Found {len(files)} files in {folder}')
             return {p.stem: p for p in files}
 
 
         mask_files = collect(self.mask_dir)
         bf_files = collect(self.bf_image_dir)
         f_files = collect(self.f_image_dir)
-        print(f'Found {len(mask_files)} mask files, {len(f_files)} fluorescence files, and {len(bf_files)} brightfield files.')
+        # print(f'Found {len(mask_files)} mask files, {len(f_files)} fluorescence files, and {len(bf_files)} brightfield files.')
         # Adjust stems by removing "Test_Example_" prefix
         mask_files = {
             stem.replace("Test_Example_", "").replace("_prediction", "").replace("_LargeGlobalFlatfield.tif", ""): path
@@ -96,7 +96,7 @@ class Feature_Extractor:
             for stem, path in bf_files.items()
             if ".sci" in stem
         }
-        print(f'Found {len(mask_files)} mask files, {len(f_files)} fluorescence files, and {len(bf_files)} brightfield files.')
+        # print(f'Found {len(mask_files)} mask files, {len(f_files)} fluorescence files, and {len(bf_files)} brightfield files.')
         # Find common filenames across all three sets
         common_stems = set(mask_files.keys()) & set(f_files.keys()) & set(bf_files.keys())
 
@@ -110,7 +110,7 @@ class Feature_Extractor:
         f_image_paths = [f_files[s] for s in sorted_stems]
         bf_image_paths = [bf_files[s] for s in sorted_stems]
         
-        print(f'--------------On: {self.output_dir.parts[-3]} -------------------------')
+        print(f'--------------On: {self.mask_dir.parts[-3]} -------------------------')
         print(f'------------------Found: {len(mask_paths)} Images!---------------------')
 
         return mask_paths, f_image_paths, bf_image_paths
@@ -329,7 +329,7 @@ class Feature_Extractor:
                     }
                 )
 
-                feat_bar.write_image(self.output_dir+f'{feat}.png')
+                feat_bar.write_image(self.output_dir / f'{feat}.png')
 
     def get_patch_coordinates(self,patch_name):
         ext = patch_name.split('.')[-1]
@@ -480,10 +480,10 @@ class Feature_Extractor:
         stitched_downsampled_f    = (stitched_downsampled_f / overlap_downsampled[..., None]).astype(np.uint8)
         
         # Save outputs
-        slide_name = Path(self.output_dir).parts[-3]
-        Image.fromarray(stitched_downsampled_mask).save(Path(self.output_dir) / f"{slide_name}_Stitched_Output.tif")
-        Image.fromarray(stitched_downsampled_bf).save(Path(self.output_dir) / f"{slide_name}_Stitched_BF.tif")
-        Image.fromarray(stitched_downsampled_f).save(Path(self.output_dir) / f"{slide_name}_Stitched_F.tif")
+        slide_name = self.output_dir.parts[-3]
+        Image.fromarray(stitched_downsampled_mask).save(self.output_dir / f"{slide_name}_Stitched_Output.tif")
+        Image.fromarray(stitched_downsampled_bf).save(self.output_dir / f"{slide_name}_Stitched_BF.tif")
+        Image.fromarray(stitched_downsampled_f).save(self.output_dir / f"{slide_name}_Stitched_F.tif")
 
         return stitched_downsampled_mask, stitched_downsampled_bf, stitched_downsampled_f
         
@@ -526,16 +526,16 @@ if __name__=='__main__':
     #     if 'Test' in slide_name:
     #         continue
         
-    #     # if '1HE' not in slide_name:
-    #     #     print(f'Skipping {slide_name} as it does not contain 1HE')
-    #     #     continue
+    #     if '2HE' not in slide_name:
+    #         print(f'Skipping {slide_name} as it does not contain 2HE')
+    #         continue
         
     #     # Save current root_dir
     #     cur_root_dir = args.root_dir
         
     #     args.root_dir = os.path.join(args.root_dir, slide_name)
     #     print(args.root_dir)
-    #     args.mask_dir = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} C-New')
+    #     args.mask_dir = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} C/Testing_Output')
     #     args.bf_image_dir = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} B')
     #     args.f_image_dir  = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} F')
     #     args.output_dir = os.path.join(args.root_dir, 'Collagen_Quantification_Masked')

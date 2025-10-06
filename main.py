@@ -342,6 +342,7 @@ def main():
 
                     dataset_train = AttrSubset(dataset_train_all, train_idx)
                     dataset_valid = AttrSubset(dataset_valid_all, test_idx)
+                    dataset_valid.testing_metrics = True
                     
                     # Training the model                                        
                     model = Training_Loop(
@@ -350,8 +351,11 @@ def main():
                         train_parameters=training_parameters,
                         nept_run=nept_run
                     )
+                    training_parameters["model_details"]["target_type"] = "binary"                     
+                    print("-"*50,"Testing Source Model""-"*50,)
                     # Testing the model
                     Test_Network(model, dataset_valid, nept_run, training_parameters)
+                    training_parameters["model_details"]["target_type"] = "nonbinary"                                                            
 
         elif 'split' in training_parameters['train_test_split']:
             
