@@ -345,24 +345,7 @@ class Feature_Extractor:
             y_coord = 0
 
         return y_coord, x_coord
-    
-    # def get_patch_coordinates(self,patch_name):
-    #     """
-    #     Getting Y and X coordinates from patch names for reconstruction
-    #     """
-    #     coords = patch_name.split('.sci ')[-1].replace('_prediction.tif','')
-    #     try:
-    #         x_coord = int(float(coords.split(' ')[-1].replace('X','').lstrip('0')))
-    #     except ValueError:
-    #         x_coord = 0
-
-    #     try:
-    #         y_coord = int(float(coords.split(' ')[0].replace('Y','').lstrip('0')))
-    #     except ValueError:
-    #         y_coord = 0
-
-    #     return y_coord, x_coord
-
+        
     def stitch_patches(self, downsample=10, patch_overlap=150):
         """
         Stitch and downsample predictions for whole slide-level fibrosis quantification
@@ -504,51 +487,76 @@ def main(args):
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser(
-        description = 'Collagen quantification parser'
+        description = 'Collagen feature extraction using predicted masks'
     )
     
-    parser.add_argument('--config', type=str,default="./JSON/col_quantify.json", help='path to the config file')
-        
-    args = parser.parse_args()           
+    parser.add_argument(
+        '--config',
+        type=str,
+        default="./Config/feat_extract.json",
+        help='Path to the config file'
+    )
+    args = parser.parse_args()
     
     # Load config from JSON
     with open(args.config) as json_file:
         data = json.load(json_file)
 
-    # Overwrite args with config, then add project_name
+    # Overwrite args with config
     args = argparse.Namespace(**data)
     
-    main(args)
-    
-    # for slide_name in os.listdir(args.root_dir):
-    #     if not os.path.isdir(os.path.join(args.root_dir, slide_name)):
-    #         continue
-    #     if 'Test' in slide_name:
-    #         continue
-        
-    #     if '2HE' not in slide_name:
-    #         print(f'Skipping {slide_name} as it does not contain 2HE')
-    #         continue
-        
-    #     # Save current root_dir
-    #     cur_root_dir = args.root_dir
-        
-    #     args.root_dir = os.path.join(args.root_dir, slide_name)
-    #     print(args.root_dir)
-    #     args.mask_dir = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} C/Testing_Output')
-    #     args.bf_image_dir = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} B')
-    #     args.f_image_dir  = os.path.join(args.root_dir, f'{args.root_dir.split('/')[-1]} F')
-    #     args.output_dir = os.path.join(args.root_dir, 'Collagen_Quantification_Masked')
-    #     # args.use_stitched = True
-    #     print()
-    #     print('-------------------------------------------')
-    #     start_time = time.time()
-    #     main(args)
-        
-    #     time_diff = time.time() - start_time
-    #     print(f'Time taken to quantify {slide_name}: {int(time_diff // 3600)}:{int((time_diff % 3600) // 60)}:{int(time_diff % 60)}')
-    #     print('-------------------------------------------')
-        
-    #     # Retrive current root_dir
-    #     args.root_dir = cur_root_dir
+    if not getattr(args, 'root_dir', None):
+        main(args)
+    else:
+        args.root_dir = Path(args.root_dir)
+
+        for slide_path in args.root_dir.iterdir():
+            if not slide_path.is_dir():
+                continue
+
+            # Test only one slide for debugging
+            if '2H' not in slide_path.name:
+                print(f"Skipping {slide_path.name} as it does not contain 2H")
+                continue
+            
+            # Save current root_dir
+            cur_root_dir = args.root_dir
+            
+            args.root_dir = slide_path
+            print(args.root_dir)
+            slide_name = slide_path.name
+            
+            #  --- Automatically detect directories ---
+            subdirs = [d for d in slide_path.iterdir() if d.is_dir() and slide_name in d.name]
+
+            args.bf_image_dir = next((d for d in subdirs if 'B' in d.name and not 'C' in d.name and not 'F' in d.name), None)
+            args.f_image_dir  = next((d for d in subdirs if 'F' in d.name and not 'B' in d.name and not 'C' in d.name), None)
+            args.mask_dir     = next((d for d in subdirs if 'C' in d.name and 'Testing_Output' not in d.name), None)
+
+            # Handle Testing_Output inside C directory if it exists
+            if args.mask_dir and (args.mask_dir / 'Testing_Output').exists():
+                args.mask_dir = args.mask_dir / 'Testing_Output'
+            
+            # Check required directories
+            if not args.bf_image_dir or not args.f_image_dir or not args.mask_dir:
+                print(f"\n[WARNING] Skipping {slide_path.name}: Missing required subdirectories.")
+                print(f"  Found BF:   {args.bf_image_dir}")
+                print(f"  Found F:    {args.f_image_dir}")
+                print(f"  Found Mask: {args.mask_dir}")
+                print("--------------------------------------------------")
+                continue
+            
+            # Set output directory            
+            args.output_dir = slide_path / "Features"
+            # print(args)
+            print('-------------------------------------------')
+            start_time = time.time()
+            main(args)
+            
+            time_diff = time.time() - start_time
+            print(f'Time taken to extract features for {slide_name}: {int(time_diff // 3600)}:{int((time_diff % 3600) // 60)}:{int(time_diff % 60)}')
+            print('-------------------------------------------')
+            
+            # Retrive current root_dir
+            args.root_dir = cur_root_dir
 
