@@ -38,6 +38,7 @@ from PIL import Image
 from scipy.ndimage import binary_fill_holes
 from skimage.feature import graycomatrix, graycoprops
 from skimage.transform import resize
+from skimage.filters import threshold_otsu
 import plotly.express as px
 import argparse
 from typing import Dict
@@ -58,6 +59,7 @@ class Feature_Extractor:
         self.f_image_dir = Path(f_image_dir)
         self.mask_dir = Path(mask_dir)
         self.output_dir = Path(output_dir)
+        # keep threshold in signature for backward compatibility (not used for BF/F/mask thresholds)
         self.threshold = threshold
         self.use_stitched = use_stitched
         
@@ -77,7 +79,7 @@ class Feature_Extractor:
         bf_files = collect(self.bf_image_dir)
         f_files = collect(self.f_image_dir)
 
-        # Normalize stems
+        # Normalize stems (preserve original behavior)
         mask_files = {stem.replace("_prediction", "").replace("_LargeGlobalFlatfield", ""): path for stem, path in mask_files.items()}
         f_files = {stem.replace("_LargeGlobalFlatfield", ""): path for stem, path in f_files.items()}
         bf_files = {stem.replace(".sci", ""): path for stem, path in bf_files.items()}
@@ -128,7 +130,7 @@ class Feature_Extractor:
                 if bin_image.ndim == 3:
                     bin_image = bin_image[:, :, 0]
 
-                # Multiply bin mask
+                # Multiply bin mask -> these are uint8 as before
                 masked_bf_image = np.uint8(bin_image * bf_image)
                 masked_f_image = np.uint8(bin_image * f_image)
 
@@ -136,11 +138,13 @@ class Feature_Extractor:
                 glob_features = self.global_features(bin_image)
                 dt_features = self.distance_transform_features(bin_image)
 
+                # intensity and texture functions now compute adaptive Otsu per-image internally
                 bf_features = {**self.intensity_features(masked_bf_image),
                                **self.texture_features(masked_bf_image)}
                 f_features = {**self.intensity_features(masked_f_image),
                               **self.texture_features(masked_f_image)}
 
+                # prefix feature names as original
                 bf_features = {f'BF {k}': v for k, v in bf_features.items()}
                 f_features = {f'F {k}': v for k, v in f_features.items()}
                 
@@ -152,7 +156,7 @@ class Feature_Extractor:
         if all_feature_list:
             feature_df = pd.DataFrame.from_records(all_feature_list)
             feature_df.to_csv(self.output_file_path, index=False)
-            self.plot_feature(feature_df)
+            #self.plot_feature(feature_df)
 
     # ------------------- Stitched processing -------------------
     def _run_stitched(self):                
@@ -179,6 +183,10 @@ class Feature_Extractor:
         if bin_image.ndim == 3:
             bin_image = bin_image[:, :, 0]
 
+        # Create masked BF/F images for stitched case (same logic as patch)
+        masked_bf_image = np.uint8(bin_image * bf_image)
+        masked_f_image = np.uint8(bin_image * f_image)
+
         glob_features = self.global_features(bin_image)
         dt_features = self.distance_transform_features(bin_image)
 
@@ -202,7 +210,30 @@ class Feature_Extractor:
 
     # ------------------- Binarization -------------------
     def binarize(self, image):
-        return (image >= (255 * self.threshold["F"])).astype(np.uint8)
+        """
+        Adaptive Otsu binarization for the mask image.
+        Keeps function name/signature identical; ignores self.threshold for mask.
+        """
+        # ensure uint8 grayscale
+        if image.ndim == 3:
+            img_gray = np.mean(image, axis=-1)
+        else:
+            img_gray = image.copy().astype(np.float32)
+
+        # scale to 0-255 if image in 0-1
+        if img_gray.max() <= 1.0:
+            img_gray = (img_gray * 255).astype(np.uint8)
+        else:
+            img_gray = img_gray.astype(np.uint8)
+
+        try:
+            thresh = threshold_otsu(img_gray)
+        except Exception:
+            # fallback to simple >0 if otsu fails
+            return (img_gray > 0).astype(np.uint8)
+
+        bin_img = (img_gray >= thresh).astype(np.uint8)
+        return bin_img
 
     # ------------------- Global features -------------------
     def global_features(self, bin_image):
@@ -226,7 +257,10 @@ class Feature_Extractor:
 
     # ------------------- Distance transform features -------------------
     def distance_transform_features(self, bin_image):
-        dist_transform_img = cv2.distanceTransform(bin_image, cv2.DIST_L2, 5)
+        # cv2.distanceTransform expects binary image where foreground is non-zero uint8
+        # ensure type
+        bin_for_dt = (bin_image > 0).astype(np.uint8)
+        dist_transform_img = cv2.distanceTransform(bin_for_dt, cv2.DIST_L2, 5)
         dist_transform_img[dist_transform_img == 0] = np.nan
         return {
             'Sum Distance Transform': np.nansum(dist_transform_img),
@@ -238,19 +272,88 @@ class Feature_Extractor:
 
     # ------------------- Intensity features -------------------
     def intensity_features(self, gray_image, image_key='BF'):
-        intensity_image = gray_image.copy().astype(float)
-        intensity_image[intensity_image < (255 * self.threshold[image_key])] = np.nan
+        """
+        Adaptive intensity features:
+        - Compute Otsu threshold on the provided gray_image (if possible) and mask-out values below threshold.
+        - Returns same-named keys as original ('Mean Intensity', 'Median Intensity', etc.)
+        """
+        img = gray_image.copy().astype(float)
+
+        # if image is all zeros -> return nans/zeros
+        if np.count_nonzero(img) == 0:
+            return {
+                'Mean Intensity': np.nan,
+                'Median Intensity': np.nan,
+                'Standard Deviation Intensity': np.nan,
+                'Maximum Intensity': np.nan
+            }
+
+        # compute per-image Otsu threshold (note: expects uint8)
+        try:
+            img_for_thresh = img
+            if img_for_thresh.max() <= 1.0:
+                img_for_thresh = (img_for_thresh * 255).astype(np.uint8)
+            else:
+                img_for_thresh = np.clip(img_for_thresh, 0, 255).astype(np.uint8)
+            otsu_thresh = threshold_otsu(img_for_thresh)
+            # apply threshold on float image using otsu_thresh scale 0-255
+            img[img < otsu_thresh] = np.nan
+        except Exception:
+            # fallback: do not threshold if Otsu fails
+            pass
+
         return {
-            'Mean Intensity': np.nanmean(intensity_image),
-            'Median Intensity': np.nanmedian(intensity_image),
-            'Standard Deviation Intensity': np.nanstd(intensity_image),
-            'Maximum Intensity': np.nanmax(intensity_image)
+            'Mean Intensity': np.nanmean(img),
+            'Median Intensity': np.nanmedian(img),
+            'Standard Deviation Intensity': np.nanstd(img),
+            'Maximum Intensity': np.nanmax(img)
         }
 
     # ------------------- Texture features -------------------
     def texture_features(self, gray_image, image_key='BF'):
-        texture_image = gray_image.copy()
-        texture_image[texture_image < (255 * self.threshold[image_key])] = 0
+        """
+        Adaptive texture features:
+        - Compute Otsu threshold to zero out low-intensity pixels
+        - Convert to uint8 and call graycomatrix / graycoprops
+        """
+        texture_image = gray_image.copy().astype(float)
+
+        # if empty -> zeros for features
+        if np.count_nonzero(texture_image) == 0:
+            return {
+                'Contrast': 0.0,
+                'Homogeneity': 0.0,
+                'Correlation': 0.0,
+                'Energy': 0.0
+            }
+
+        try:
+            # prepare image for otsu
+            img_for_thresh = texture_image
+            if img_for_thresh.max() <= 1.0:
+                img_for_thresh = (img_for_thresh * 255).astype(np.uint8)
+            else:
+                img_for_thresh = np.clip(img_for_thresh, 0, 255).astype(np.uint8)
+            otsu_thresh = threshold_otsu(img_for_thresh)
+            # zero out below threshold
+            texture_image[texture_image < otsu_thresh] = 0
+        except Exception:
+            # if otsu fails, proceed without thresholding
+            pass
+
+        # convert to uint8 (graycomatrix requires integer types)
+        texture_image = np.clip(texture_image, 0, 255).astype(np.uint8)
+
+        if np.all(texture_image == 0):
+            return {
+                'Contrast': 0.0,
+                'Homogeneity': 0.0,
+                'Correlation': 0.0,
+                'Energy': 0.0
+            }
+
+        # build GLCM and compute properties
+        # handle any small images by ensuring levels <=256 (we keep 256)
         glcm = graycomatrix(texture_image, [1], [0], levels=256, symmetric=True, normed=True)
         return {
             'Contrast': graycoprops(glcm, 'contrast')[0, 0],
@@ -375,12 +478,13 @@ def main(args):
             print(f"\n--- Processing Set: {s['key']} ---")
             output_dir = slide_dir / f"Features_{s['key']}"
             output_dir.mkdir(parents=True, exist_ok=True)
+            threshold = getattr(args, "threshold", {"BF": None, "F": None})
             feat_extractor = Feature_Extractor(
                 bf_image_dir=s["B"],
                 f_image_dir=s["F"],
                 mask_dir=s["C"],
                 output_dir=output_dir,
-                threshold=args.threshold,
+                threshold=threshold,
                 use_stitched=args.use_stitched
             )
             start_time = time.time()
