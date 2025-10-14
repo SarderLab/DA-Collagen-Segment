@@ -75,20 +75,6 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
 
         datasets_valid = dataset_valid if isinstance(dataset_valid, list) else [dataset_valid]
 
-        # Initialize metrics
-        if any(ds.testing_metrics for ds in datasets_valid):
-            if target_type == 'binary':
-                metrics_calculator = BinaryMetrics()
-                testing_metrics_df = pd.DataFrame(
-                    columns=['Dice', 'Accuracy', 'Recall', 'Precision', 'Specificity', 'AUC', 'MSE', 'R2', 'ImgLabel']
-                )
-            else:
-                metrics_calculator = []
-                testing_metrics_df = pd.DataFrame(columns=['MSE', 'Norm_MSE', 'ImgLabel'])
-        else:
-            metrics_calculator = None
-            testing_metrics_df = None                
-
         all_latent_features = None
         clustering_labels = []
 
@@ -99,6 +85,20 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
             os.makedirs(ds_pred_dir, exist_ok=True)
 
             transform_type = getattr(ds, 'transform', None)
+
+            # ------------------- Initialize metrics per dataset -------------------
+            if any(ds.testing_metrics for ds in datasets_valid):
+                if target_type == 'binary':
+                    metrics_calculator = BinaryMetrics()
+                    testing_metrics_df = pd.DataFrame(
+                        columns=['Dice', 'Accuracy', 'Recall', 'Precision', 'Specificity', 'AUC', 'MSE', 'R2', 'ImgLabel']
+                    )
+                else:
+                    metrics_calculator = []
+                    testing_metrics_df = pd.DataFrame(columns=['MSE', 'Norm_MSE', 'ImgLabel'])
+            else:
+                metrics_calculator = None
+                testing_metrics_df = None 
 
             with tqdm(range(len(ds)), desc=f'Predicting (Dataset {d_idx+1})') as pbar:
                 for i in range(len(ds)):

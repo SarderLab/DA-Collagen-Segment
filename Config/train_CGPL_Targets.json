@@ -15,7 +15,7 @@
         "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/CGPL/C",
         "target_label_dir": ["/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/Emory/C", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/C", "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/BIDMC/C"],
         "model_file": "/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA/CGPL/models/Collagen_Seg_Model_Latest.pth",
-        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_6_Results/CGPL_DG",
+        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_Prod_Results/",
         "neptune": {
             "project":"srujithreddy.narra/DUET",
             "source_files": [
@@ -25,7 +25,7 @@
                 "**/.json"
             ],
             "tags": [
-                "CG->Tars_D6"
+                "Prod_Test"
             ]
         }
     },
@@ -43,15 +43,15 @@
             "ann_classes": "background,collagen"
         },
         "train_test_split": {
-            "k-fold": 5,
+            "k-fold": 2,
             "split": 0.8
         },
         "loss": "MSE",
         "train_loss": "structural_loss",
         "lr": 0.0005,
         "batch_size": 2,
-        "step_num": 1500,
-        "save_step": 20,
+        "step_num": 2,
+        "save_step": 1,
         "k_disc": 1,
         "k_gen": 1,
         "preprocessing": {
