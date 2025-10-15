@@ -9,9 +9,16 @@ To get started, clone the repository and install the necessary
 dependencies.
 
 ``` bash
+# Clone the repository
 git clone https://github.com/SarderLab/DA-Collagen-Segment.git
 cd DA-Collagen-Segment
-pip install -r requirements.txt
+
+# Create a new Conda environment (replace <my_env_name> with your preferred name)
+conda env create -f duet.yml -n <my_env_name>
+
+# Activate the environment
+conda activate <my_env_name>
+
 ```
 
 ## Repository Structure
