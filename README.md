@@ -30,6 +30,32 @@ pip install -r requirements.txt
     models.
 -   **TrainmultiDA.py:** Script for training multiple domain adaptation
     models.
+    
+##Execution Commands
+### Training
+Once your configuration file (e.g., Config/Example_ADDA.json) is created, you can start training with:
+``` bash
+python TrainmultiDA.py --config Config/training.json
+```
+Note: A template for training.json is available in the Config folder for reference.
+
+Or submit via SLURM:
+``` bash
+sbatch scripts/run_train.sh
+```
+
+### Predicting
+Run the prediction script with a configuration file:
+``` bash
+python main.py /file_path/prediction.json
+```
+Note: A template for prediction.json is available in the Config folder for reference.
+
+### Feature Extraction
+``` bash
+python FeatureExtractor.py --config /file_path/feature_extraction.json 
+```
+Note: A template for feature_extraction.json  is available in the Config folder for reference.
 
 ## Configuration File Overview
 Each experiment in this repository is defined by a JSON configuration file. This file controls dataset paths, model architecture, preprocessing, and training parameters.
@@ -103,21 +129,7 @@ These parameters define how the model is trained, including architecture, loss f
 | `target_alpha_late`  | Late-stage EMA rate for more stable adaptation.                                |
 | `target_late_epoch`  | Epoch after which `target_alpha_late` takes effect.                            |
 
-### Training
-Once your configuration file (e.g., Config/Example_ADDA.json) is created, you can start training with:
-``` bash
-python TrainmultiDA.py --config Config/Example_ADDA.json
-```
 
-Or submit via SLURM:
-``` bash
-sbatch scripts/run_train.sh
-```
-
-### Predicting
-``` bash
-python main.py /Config_path
-```
 
 
 
