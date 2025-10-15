@@ -103,7 +103,7 @@ These parameters define how the model is trained, including architecture, loss f
 | `target_alpha_late`  | Late-stage EMA rate for more stable adaptation.                                |
 | `target_late_epoch`  | Epoch after which `target_alpha_late` takes effect.                            |
 
-### Running Training
+### Training
 Once your configuration file (e.g., Config/Example_ADDA.json) is created, you can start training with:
 ``` bash
 python TrainmultiDA.py --config Config/Example_ADDA.json
@@ -112,6 +112,11 @@ python TrainmultiDA.py --config Config/Example_ADDA.json
 Or submit via SLURM:
 ``` bash
 sbatch scripts/run_train.sh
+```
+
+### Predicting
+``` bash
+python main.py /Config_path
 ```
 
 
