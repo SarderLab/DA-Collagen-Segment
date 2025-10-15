@@ -66,7 +66,7 @@ Note: A template for feature_extraction.json  is available in the Config folder 
 
 ### Correlation Analysis
 ``` bash
-python FibrosisAnalysis.py --config /file_path/fibrosis.json
+python FibrosisAnalysis.py --config /file_path/correlation.json
 ```
 Note: 
 1. Create an environment using correlation.yml and switch to it before analysis
