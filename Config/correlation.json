@@ -1,6 +1,6 @@
 {
     "root_folder": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Correlation/T0-T1 UCD Kidney Biopsies/F Set 1/year-one-eGFR/time-zero-biopsies", 
-    "ehr_excel_path": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Correlation/T0-T1 UCD Kidney Biopsies/F Set 1/year-one-eGFR/time-zero-biopsies/matched_full_images.xlsx",
-    "out_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Correlation/T0-T1 UCD Kidney Biopsies/F Set 1/year-one-eGFR/regression_time_zero_biopsies", 
+    "ehr_excel_path": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Correlation/T0-T1 UCD Kidney Biopsies/F Set 1/year-one-eGFR/time-zero-biopsies/time-zero.xlsx",
+    "out_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Correlation/T0-T1 UCD Kidney Biopsies/F Set 1/year-one-eGFR/regression_time_zero_biopsies_v2", 
     "task_type": "regression"
 }
