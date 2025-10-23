@@ -118,7 +118,9 @@ class Fibrosis_Analysis:
 
         # Features: drop EHR + image name
         drop_cols = ['Image Names','SlideName','1yr eGFR','Age','Gender','1yr SCr']
-        feature_cols = [c for c in self.dataset.columns if c not in drop_cols]
+        all_cols = self.dataset.columns
+        keep_cols = [c for i, c in enumerate(all_cols) if i in range(0,10) or i in range(10, 18)]
+        feature_cols = [c for c in keep_cols if c not in drop_cols]
         X = self.dataset[feature_cols]
         y = self.dataset['1yr eGFR'].values
 
@@ -185,27 +187,56 @@ class Fibrosis_Analysis:
 
     def plot_results(self):
         """
-        Plot best mean R2 per regressor and annotate best UMAP component (k).
+        Plot bar and boxplots of R2 values for regressors with consistent colors and order.
         """
         if self.results_df is None:
             raise ValueError("No results found. Run apply_models() first.")
 
+        # ---------- Palette ----------
+        regressors = self.results_df['Regressor'].unique()
+        palette_colors = sns.color_palette("Set2", n_colors=len(regressors))
+        palette_dict = dict(zip(regressors, palette_colors))
+
+        # ---------- BAR PLOT (mean R2 per regressor, best UMAP) ----------
         grouped = self.results_df.groupby(['Regressor','UMAP_Components'])['R2'].mean().reset_index()
         best_k_df = grouped.loc[grouped.groupby('Regressor')['R2'].idxmax()].reset_index(drop=True)
+        regressor_order = best_k_df.sort_values('R2', ascending=False)['Regressor'].tolist()
 
         plt.figure(figsize=(10,6))
-        sns.barplot(data=best_k_df, x='Regressor', y='R2', edgecolor='black', palette='Set2')
-        plt.title('Best mean R2 per Regressor (Patch-level)', weight='bold')
-        plt.ylabel('Mean R2', weight='bold')
+        sns.set_style("whitegrid")
+        sns.set_context("talk")
+        sns.barplot(data=best_k_df, x='Regressor', y='R2', edgecolor='black',
+                    palette=palette_dict, order=regressor_order)
+        plt.title('Regressors Performance on 1-year eGFR', weight='bold')
+        plt.ylabel('Mean R²', weight='bold')
         plt.xlabel('Regressor', weight='bold')
+        plt.ylim(0,1)
         plt.xticks(rotation=45, ha='right')
-        for i, row in best_k_df.iterrows():
-            plt.text(i, row['R2']+0.02, f"k={row['UMAP_Components']}", ha='center', fontsize=9)
         plt.tight_layout()
-        plt.savefig(os.path.join(self.out_dir,'bar_plot_patch_level_R2.png'), dpi=300, bbox_inches='tight')
+        barplot_path = os.path.join(self.out_dir,'bar_plot_patch_level_R2.png')
+        plt.savefig(barplot_path, dpi=300, bbox_inches='tight')
         plt.show()
         plt.close()
-        print(f"Plot saved to {self.out_dir}")
+        print(f"Bar plot saved to {barplot_path}")
+
+        # ---------- BOX PLOT (all R2 values per fold) ----------
+        plt.figure(figsize=(10,6))
+        sns.boxplot(data=self.results_df, x='Regressor', y='R2', palette=palette_dict, order=regressor_order)
+        sns.swarmplot(data=self.results_df, x='Regressor', y='R2', color='0.25', alpha=0.7, size=4, order=regressor_order)
+        plt.title('Regressors Performance on 1-year eGFR', weight='bold')
+        plt.ylabel('R²', weight='bold')
+        plt.xlabel('Regressor', weight='bold')
+        plt.ylim(0,1)
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        boxplot_path = os.path.join(self.out_dir,'box_plot_patch_level_R2.png')
+        plt.savefig(boxplot_path, dpi=300, bbox_inches='tight')
+        plt.show()
+        plt.close()
+        print(f"Box plot saved to {boxplot_path}")
+
+
+
 
 
 # ---------- MAIN ----------

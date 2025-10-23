@@ -4,24 +4,18 @@
         "mode": "None",
         "phase": "test",
         "type": "multi",
-        "overlapRate": 25,
-
+        "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/C",
         "image_dir": {
             "DUET": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/F",
             "Brightfield": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/B"
         },
-
-        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_Prod_Results/UCD_PATH/",
-
+        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_6_Results/2_Source_Only/CGPL_UCD_PATH_source_model",
         "model_file": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_6_Results/Production_CGPL_UCD_PATH/models/Collagen_Seg_Model_Latest.pth",
-        "label_dir":"",
-
         "preprocessing": {
             "image_size": "512,512,2",
             "mask_size": "512,512,1",
             "color_transform": "multi_input_green"
         },
-
         "model_details": {
             "architecture": "ensemble",
             "encoder": "resnet34",
@@ -31,7 +25,8 @@
             "active": "sigmoid",
             "target_type": "binary",
             "in_channels": 2,
-            "ann_classes": ["background", "collagen"]
-        }
+            "ann_classes": ["background","collagen"]
+        },
+        "skip_duplicates": true
     }
 }
