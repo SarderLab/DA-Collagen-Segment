@@ -112,7 +112,11 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                         overlap_mask = np.zeros_like(final_pred_mask)
 
                         patch_size = [int(x) for x in test_parameters['preprocessing']['image_size'].split(',')[0:-1]]
-                        image_name = os.path.basename(ds.inputs[i])
+                        if isinstance(ds.inputs[i], list):
+                            image_name = os.path.basename(ds.inputs[i][0])
+                        else:
+                            image_name = os.path.basename(ds.inputs[i])
+                        
                         base_name = os.path.splitext(image_name)[0]
                         save_name = base_name + ".jpg"  # save as JPG
 
@@ -171,6 +175,8 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                     else:
                         image, target, input_name = sample
                         input_name = os.path.basename(input_name)
+                        if isinstance(input_name, list):
+                            input_name = os.path.basename(input_name[0])
                         base_name = os.path.splitext(input_name)[0]
                         save_name = base_name + ".jpg"  # save as JPG
 
