@@ -70,7 +70,7 @@ python FibrosisAnalysis.py --config /file_path/correlation.json
 ```
 Note: 
 1. Create an environment using correlation.yml and switch to it before analysis
-2. A template for feature_extraction.json  is available in the Config folder for reference.
+2. A template for correlation.json  is available in the Config folder for reference.
 
 ## Configuration File Overview
 Each experiment in this repository is defined by a JSON configuration file. This file controls dataset paths, model architecture, preprocessing, and training parameters.
