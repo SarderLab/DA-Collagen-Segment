@@ -6,23 +6,18 @@ Performing dimensional reduction from latent features extracted from image patch
 """
 
 import os
-import sys
-
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import joblib
 
 import torch
-from torch.utils.data import DataLoader
 from torch import nn
 
 import plotly.express as px
-
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 import umap
-
-import segmentation_models_pytorch as smp
 from Models import create_model
 
 
@@ -65,7 +60,7 @@ class Clusterer:
             print('Done Saving Features!')
         
         # UMAP reduction
-        reduced_features = self.reduce_features(extracted_features)
+        reduced_features, sil_score = self.reduce_features(extracted_features, labels)
         print('Done Reducing Features')
 
         if self.save_umap_coordinates:
@@ -78,7 +73,7 @@ class Clusterer:
             print('Done Generating Plot!')
 
         else:
-            plot = self.gen_plot(reduced_features,labels)
+            plot = self.gen_plot(reduced_features, labels)
 
     def load_model(self, model_file):
 
@@ -153,7 +148,7 @@ class Clusterer:
         features_df.to_csv(os.path.join(self.output_folder, file_name))
         
 
-    def reduce_features(self, features, phase=None):
+    def reduce_features(self, features, labels=None, phase=None):
 
         scaler = StandardScaler().fit(features)
         # Saving the scaler information to the output directory
@@ -171,15 +166,30 @@ class Clusterer:
 
         scaled_data = scaler.transform(features)
 
-        umap_reducer = umap.UMAP()
+        umap_reducer = umap.UMAP(
+            n_neighbors=15, 
+            min_dist=0.1, 
+            metric='euclidean', 
+            random_state=42, 
+            force_approximation_algorithm=True
+        )
         embedding = umap_reducer.fit_transform(scaled_data)
+        
+        # Compute silhouette score (only if labels are given and >1 unique class)
+        sil_score = None
+        if labels is not None:
+            unique_labels = np.unique(labels)
+            if len(unique_labels) > 1:
+                sil_score = silhouette_score(embedding, labels)
+            else:
+                sil_score = np.nan  # meaningless if only one label
 
         # Saving umap_reducer to be used later
         if self.save_scaler_properties:
             output_reducer_file = os.path.join(self.output_folder, f'umap_reducer{phase}.sav')
             joblib.dump(umap_reducer, output_reducer_file)
 
-        return embedding
+        return embedding, sil_score
 
     def gen_plot(self,umap_features, labels=None, title="UMAP of latent features", phase=None):
 
@@ -300,8 +310,9 @@ class Clusterer:
             all_labels.extend([dataset_names[i]] * features.shape[0])
         
         all_features_before = np.concatenate(all_features_before, axis=0)
-        embedding_before = self.reduce_features(all_features_before, phase='_before')
-        scatter_before = self.gen_plot(embedding_before, labels=all_labels, title="UMAP Before Training", phase='_before')
+        embedding_before, sil_score = self.reduce_features(all_features_before, labels=all_labels, phase='_before')
+        print(f"UMAP reduction before training done with Silhouette Score: {np.round(sil_score, 2)}")
+        scatter_before = self.gen_plot(embedding_before, labels=all_labels, title=f"UMAP Before Training (Silhouette Score: {np.round(sil_score, 2)})", phase='_before')
         
         # ---------- AFTER TRAINING ----------
         print('='*30, "UMAP After Training", '='*30)
@@ -313,7 +324,8 @@ class Clusterer:
             all_features_after.append(features)
         
         all_features_after = np.concatenate(all_features_after, axis=0)
-        embedding_after = self.reduce_features(all_features_after, phase='_after')
-        scatter_after = self.gen_plot(embedding_after, labels=all_labels, title="UMAP After Training", phase='_after')
+        embedding_after, sil_score = self.reduce_features(all_features_after, labels=all_labels, phase='_after')
+        print(f"UMAP reduction after training done with Silhouette Score: {np.round(sil_score, 2)}")
+        scatter_after = self.gen_plot(embedding_after, labels=all_labels, title=f"UMAP After Training (Silhouette Score: {np.round(sil_score, 2)})", phase='_after')
         
         return scatter_before, scatter_after

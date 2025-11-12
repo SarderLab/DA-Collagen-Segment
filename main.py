@@ -186,8 +186,7 @@ def main():
             # for i in range(len(image_paths_base[0])):
             image_paths = [[f, b] for f, b in zip(image_paths_base[0], image_paths_base[1])]            
                 
-            if mode == "ADDA":
-                # t_image_paths = []
+            if mode == "ADDA":                
                 if isinstance(input_parameters['target_dir'][input_image_type[0]], str):
                     if os.path.isdir(input_parameters['target_dir'][input_image_type[0]]):                        
                         F_paths = t_image_paths_base[0]
@@ -198,6 +197,7 @@ def main():
                         image_paths_base.append(sorted(pd.read_csv(input_parameters['target_dir'][input_image_type[0]])['Paths'].tolist()))
                     print(f"Target: {len(t_image_paths)} paired images")
                 elif isinstance(input_parameters['target_dir'][input_image_type[0]], list):
+                    t_image_paths = []
                     for t in range(len(input_parameters['target_dir'][input_image_type[0]])):
                         F_paths = t_image_paths_base[0][t]
                         B_paths = t_image_paths_base[1][t]
@@ -207,7 +207,7 @@ def main():
                     for i, paths in enumerate(t_image_paths):
                         print(f"Target {i+1}: {len(paths)} paired images")
 
-        elif input_parameters['type']=='single':
+        elif input_parameters['type'] == 'single':
 
             # Getting either DUET or Brightfield images
             if os.path.isdir(input_parameters['image_dir'][input_image_type[0]]):

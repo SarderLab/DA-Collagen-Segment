@@ -437,7 +437,7 @@ def TrainingDA_Loop(model_path, dataset_train_s, dataset_valid_s, dataset_train_
                                 img_dict[f'Target Images {i+1}'] = np.concatenate((current_img_t[:3,:,:],current_img_t[3:,:,:]),axis=-2)
                                 img_dict[f'GT_Pred_Target {i+1}'] = np.concatenate((val_masks_t_list[i][0].cpu().numpy(), val_preds_t_list[i][0].cpu().numpy()),axis=-2)
                                 
-                        elif in_channels==4:                            
+                        elif in_channels == 4:                            
                             # Create color images for source and target
                             current_img_s = np.stack((
                                 np.zeros_like(current_img_s[0, :, :]),  # R channel DUET image
@@ -465,7 +465,7 @@ def TrainingDA_Loop(model_path, dataset_train_s, dataset_valid_s, dataset_train_
                                 img_dict[f'Target Images {i+1}'] = np.concatenate((current_img_t[:3,:,:],current_img_t[3:,:,:]),axis=-2)
                                 img_dict[f'GT_Pred_Target {i+1}'] = np.concatenate((val_masks_t_list[i][0].cpu().numpy(), val_preds_t_list[i][0].cpu().numpy()),axis=-2)
                                                             
-                        elif in_channels==2:
+                        elif in_channels == 2:
                             # Create color images for source and target
                             current_img_s = np.stack((
                                 np.zeros_like(current_img_s[0, :, :]),  # R channel DUET image
