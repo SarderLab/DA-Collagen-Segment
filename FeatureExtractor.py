@@ -263,7 +263,7 @@ class Feature_Extractor:
         feature_dict = {
             'Total Patch Area':total_patch_area,
             'Tissue Area': tissue_area,
-            'Empty Area': other_area,
+            'Empty Area': empty_area,
             'Collagen Area':collagen_area,
             'Collagen Area Ratio':area_ratio
         }
