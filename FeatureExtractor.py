@@ -220,19 +220,45 @@ class Feature_Extractor:
         return bin_img
 
     def global_features(self, bin_image):
+        """
+        Compute global features from a binary collagen mask.
+        Returns:
+            - Total Patch Area
+            - Tissue Area (non-collagen tissue)
+            - Empty Area
+            - Collagen Area
+            - Collagen Area Ratio
+        """
 
         # Takes as input the binary image and returns global features
         total_patch_area = np.shape(bin_image)[0] * np.shape(bin_image)[1]
         collagen_area = np.sum(bin_image)
         if collagen_area > 0:
-            tissue_area = np.sum(binary_fill_holes(bin_image))
-            other_area = total_patch_area - tissue_area
-
-            area_ratio = collagen_area / (tissue_area + collagen_area)
-
+            # Fill holes to estimate tissue area including collagen
+            filled_area = np.sum(binary_fill_holes(bin_image))
+ 
+            # Tissue area excluding collagen pixels
+            tissue_area = filled_area - collagen_area
+ 
+            # Empty area = remaining pixels
+            empty_area = total_patch_area - (collagen_area + tissue_area)
+ 
+            # Collagen ratio relative to tissue + collagen
+            area_ratio = collagen_area / (collagen_area + tissue_area)
         else:
-            tissue_area = total_patch_area
+            # No collagen detected
+            tissue_area = 0
+            empty_area = total_patch_area
             area_ratio = 0.0
+            
+            # tissue_area = np.sum(binary_fill_holes(bin_image))
+            # other_area = total_patch_area - tissue_area
+
+            # area_ratio = collagen_area / (tissue_area + collagen_area)
+
+        # else:
+        #     tissue_area = total_patch_area
+        #     area_ratio = 0.0
 
         feature_dict = {
             'Total Patch Area':total_patch_area,
