@@ -46,7 +46,7 @@ python enhance_images.py
     
 ## Execution Commands
 ### Logging and Tracking
-Create an account "https://neptune.ai/" and add the API token in the shell scripts in "scripts/" folder to enable tracking.
+Create an account "https://neptune.ai/" and add the API token to enable tracking.
 
 ### Training
 Once your configuration file (e.g., Config/Example_ADDA.json) is created, you can start training with:
