@@ -38,6 +38,12 @@ conda activate <my_env_name>
 -   **TrainmultiDA.py:** Script for training multiple domain adaptation
     models.
     
+## Preprocessing
+Paths to folders and parameters can be adjusted as per requirement in the "preprocessing/enhance_images.py"
+``` bash
+python enhance_images.py
+```
+    
 ## Execution Commands
 ### Training
 Once your configuration file (e.g., Config/Example_ADDA.json) is created, you can start training with:
