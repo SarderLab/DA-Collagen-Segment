@@ -17,7 +17,7 @@ ml
 start_time=$(date +%s)
 conda activate duet9-gpu
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export NEPTUNE_API_TOKEN="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJjZWQ3NDYzZS1jYzc4LTQ5ZDgtOWNhNS0yMDE2YTI1ODk2NmUifQ=="
+export NEPTUNE_API_TOKEN="API_Key"
 
 
 python3 main.py Config/train_CGPL_Targets.json
