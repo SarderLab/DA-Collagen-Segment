@@ -39,7 +39,7 @@ conda activate <my_env_name>
     models.
     
 ## Preprocessing
-Paths to folders and parameters can be adjusted as per requirement in the "preprocessing/enhance_images.py"
+Paths to folders and parameters can be adjusted as per requirement in the "preprocessing/enhance_images.py". This script enhances images by boosting contrast, sharpening edges, and applying gamma correction to improve structural visibility for downstream analysis.
 ``` bash
 python enhance_images.py
 ```
