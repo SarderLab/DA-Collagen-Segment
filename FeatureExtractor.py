@@ -42,6 +42,7 @@ from skimage.filters import threshold_otsu
 import plotly.express as px
 import argparse
 from typing import Dict
+from scipy.ndimage import label
 
 # =====================================================================
 #                           FEATURE EXTRACTOR
@@ -278,18 +279,60 @@ class Feature_Extractor:
 
     # ------------------- Distance transform features -------------------
     def distance_transform_features(self, bin_image):
-        # cv2.distanceTransform expects binary image where foreground is non-zero uint8
-        # ensure type
-        bin_for_dt = (bin_image > 0).astype(np.uint8)
-        dist_transform_img = cv2.distanceTransform(bin_for_dt, cv2.DIST_L2, 5)
+        """
+        Computes distance transform–based features from a binarized collagen image.
+
+        Parameters:
+            bin_image (np.ndarray): Binarized (uint8) collagen mask image.
+                                   Foreground should be >0 (e.g., 255) for collagen regions.
+
+        Returns:
+            dict: Dictionary containing distance transform statistics and counts above thresholds.
+        """
+
+        feature_dict = {}
+
+        # Handle empty or invalid masks
+        if bin_image is None or np.sum(bin_image) == 0:
+            # Return zeros for all features if no collagen pixels
+            feature_names = [
+                'Sum Distance Transform', 'Mean Distance Transform', 'Max Distance Transform',
+                'Standard Deviation Distance Transform', 'Median Distance Transform'
+            ]
+            for name in feature_names:
+                feature_dict[name] = 0.0
+
+            pixel_steps = [5 * i for i in range(0, 11)]
+            for p in pixel_steps:
+                feature_dict[f'Distance Transform Pixel Count > {p}'] = 0
+                feature_dict[f'Distance Transform ROI Count > {p}'] = 0
+
+            return feature_dict
+
+        # Compute distance transform using Euclidean (L2) distance
+        dist_transform_img = cv2.distanceTransform(bin_image, cv2.DIST_L2, 5)
+
+        # Set background (0 distance) pixels to NaN for statistical calculations
         dist_transform_img[dist_transform_img == 0] = np.nan
-        return {
-            'Sum Distance Transform': np.nansum(dist_transform_img),
-            'Mean Distance Transform': np.nanmean(dist_transform_img),
-            'Max Distance Transform': np.nanmax(dist_transform_img),
-            'Standard Deviation Distance Transform': np.nanstd(dist_transform_img),
-            'Median Distance Transform': np.nanmedian(dist_transform_img)
-        }
+
+        # Basic statistics with safety for NaN handling
+        feature_dict['Sum Distance Transform'] = np.nansum(dist_transform_img)
+        feature_dict['Mean Distance Transform'] = np.nanmean(dist_transform_img)
+        feature_dict['Max Distance Transform'] = np.nanmax(dist_transform_img)
+        feature_dict['Standard Deviation Distance Transform'] = np.nanstd(dist_transform_img)
+        feature_dict['Median Distance Transform'] = np.nanmedian(dist_transform_img)
+
+        # Pixel & ROI counts for increasing distance thresholds
+        pixel_steps = [5 * i for i in range(0, 11)]  # 0, 5, 10, ..., 50
+        for p in pixel_steps:
+            valid_mask = np.nan_to_num(dist_transform_img) > p
+            pixel_count = np.sum(valid_mask)
+            _, roi_count = label(valid_mask)
+
+            feature_dict[f'Distance Transform Pixel Count > {p}'] = pixel_count
+            feature_dict[f'Distance Transform ROI Count > {p}'] = roi_count
+
+        return feature_dict
 
     # ------------------- Intensity features -------------------
     def intensity_features(self, gray_image, image_key='BF'):
