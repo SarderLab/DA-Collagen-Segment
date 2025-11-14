@@ -1,0 +1,41 @@
+{
+    "mode": "ADDA",
+    "input_parameters": {
+        "mode": "ADDA",
+        "phase": "cluster",
+        "type": "multi",
+        "image_dir": {
+            "DUET": "<BASE_DATA_DIR>/CGPL/F",
+            "Brightfield": "<BASE_DATA_DIR>/CGPL/B"
+        },
+        "target_dir": {
+            "DUET": [
+                "<BASE_DATA_DIR>/Emory/F",
+                "<BASE_DATA_DIR>/UCD_PATH/F",
+                "<BASE_DATA_DIR>/BIDMC/F"
+            ],
+            "Brightfield": [
+                "<BASE_DATA_DIR>/Emory/B",
+                "<BASE_DATA_DIR>/UCD_PATH/B",
+                "<BASE_DATA_DIR>/BIDMC/B"
+            ]
+        },
+        "dataset_names": ["CGPL", "Emory", "UCD_PATH", "BIDMC"],
+        "output_dir": "<OUTPUT_BASE_DIR>/Figure/",
+        "model_file": "<MODEL_BASE_DIR>/Collagen_Seg_Model_Latest_5.pth",
+        "preprocessing": {
+            "image_size": "512,512,2",
+            "mask_size": "512,512,1",
+            "color_transform": "multi_input_green"
+        },
+        "model_details": {
+            "architecture": "ensemble",
+            "encoder": "resnet34",
+            "encoder_weights": "imagenet",
+            "active": "sigmoid",
+            "target_type": "nonbinary",
+            "in_channels": 2,
+            "ann_classes": ["background", "collagen"]
+        }
+    }
+}
