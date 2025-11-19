@@ -17,6 +17,9 @@ from torch import nn
 import plotly.express as px
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import umap
 from Models import create_model
 
@@ -40,8 +43,7 @@ class Clusterer:
         self.feature_post_extract = nn.Sequential(
             nn.AvgPool2d(kernel_size=15),
             nn.Flatten(start_dim=1)
-        )
-        self.feature_post_extract.to(self.device)
+        ).to(self.device)
 
         self.save_latent_features = save_latent_features
         self.save_umap_coordinates = save_umap_coordinates
@@ -253,13 +255,21 @@ class Clusterer:
             if not os.path.exists(output_umap_plots):
                 os.makedirs(output_umap_plots)
 
+            site_colors = {
+                "BIDMC": "#FF7F0E",
+                "CGPL": "#D62728",
+                "Emory": "#E377C2",
+                "UCD_PATH": "#1F77B4"
+            }
+
+            # Plotting
             for f in column_labels:
                 
                 scatter_plot = px.scatter(
                     data_frame = merged_df,
                     x='umap1',
                     y='umap2',
-                    color=f,
+                    color=site_colors[f],
                     title = f'UMAP of latent features labeled with: {f}'
                 )
 

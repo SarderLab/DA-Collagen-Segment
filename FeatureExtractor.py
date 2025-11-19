@@ -297,8 +297,8 @@ class Feature_Extractor:
         pixel_steps = [5*i for i in range(0,11)]
         for p in pixel_steps:
 
-            pixel_count = np.nansum(dist_transform_img>p)
-            _, roi_count = label(dist_transform_img>p)
+            pixel_count = np.nansum(dist_transform_img > p)     # Number of pixels where dt > p
+            _, roi_count = label(dist_transform_img > p)        # Number of connected components where dt > p
 
             feature_dict[f'Distance Transform Pixel Count > {p}'] = pixel_count
             feature_dict[f'Distance Transform ROI Count > {p}'] = roi_count
