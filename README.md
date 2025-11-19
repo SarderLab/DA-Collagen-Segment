@@ -67,6 +67,13 @@ python main.py /file_path/prediction.json
 ```
 Note: A template for prediction.json is available in the Config folder for reference.
 
+### Clustering
+Run the clusering script with a configuration file:
+``` bash
+python main.py /file_path/cluster.json
+```
+Note: A template for cluster.json is available in the Config folder for reference.
+
 ### Feature Extraction
 ``` bash
 python FeatureExtractor.py --config /file_path/feature_extraction.json 
