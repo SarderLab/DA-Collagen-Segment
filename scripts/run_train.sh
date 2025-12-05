@@ -17,7 +17,7 @@ ml
 start_time=$(date +%s)
 #nvidia-smi
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export NEPTUNE_API_TOKEN="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiJhODE0Mzc0MC03MmQ5LTQ0NjYtOGU2OC1jZDQ1NGZhODUxNDAifQ==",
+export NEPTUNE_API_TOKEN="Your Neptone API Key",
 export TORCH_HOME=/blue/pinaki.sarder/f.afsari/.torch_cache
 conda activate collagen_segment
 
