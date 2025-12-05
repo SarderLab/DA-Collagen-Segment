@@ -1,0 +1,29 @@
+{
+    "mode": "None",
+    "input_parameters": {
+        "mode": "None",
+        "phase": "test",
+        "type": "multi",
+        "image_dir": {
+            "DUET": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/F",
+            "Brightfield": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/B"
+        },
+        "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/C",
+        "output_dir": "/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA1/PATH_Source_only_gRGB",
+        "model_file": "/blue/pinaki.sarder/f.afsari/4-DUET/Results-DA1/CGPL_gRGB/models/Collagen_Seg_Model_Latest.pth",
+        "preprocessing": {
+            "image_size": "512,512,4",
+            "mask_size": "512,512,1",
+            "color_transform": "multi_input_green_rgb"
+        },
+        "model_details": {
+            "architecture": "ensemble",
+            "encoder": "resnet34",
+            "encoder_weights": "imagenet",
+            "active": "sigmoid",
+            "target_type": "binary",
+            "in_channels": 4,
+            "ann_classes": "background,collagen"
+        }
+    }
+}

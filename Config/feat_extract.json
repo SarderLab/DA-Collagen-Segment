@@ -1,0 +1,9 @@
+{
+    "root_dir": "/orange/pinaki.sarder/Davy_Jones_Locker/Farzad_Fibrosis/aim3/T0-T1 UCD Kidney Biopsies/F Set 1/Tiles",    
+    "threshold": 
+        {
+            "BF": 0.1,
+            "F": 0.05            
+        }, 
+    "use_stitched": false
+}

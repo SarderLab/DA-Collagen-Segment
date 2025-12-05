@@ -160,32 +160,53 @@ class EnsembleModel(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(64, self.n_classes, kernel_size=1, bias=True)
         )
-
     def forward(self,input):
 
         b_input = input[:, :int(self.in_channels/2), :, :]
         d_input = input[:, int(self.in_channels/2):, :, :]
-        
-        # === FIXED ===
-        b_encoder_out = self.model_b.encoder(b_input)
-        d_encoder_out = self.model_d.encoder(d_input)
-        b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
-        d_output = self.model_d.decoder(d_encoder_out)  # pass as single argument
+        # print(f"b_input shape: {b_input.shape}, d_input shape: {d_input.shape}")
+        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
+        # print(f"b_output shape: {b_output.shape}, d_output shape: {d_output.shape}")
         
         combined_output = torch.cat((b_output,d_output),dim=1)
-        final_prediction = self.final_active(self.segmentation_head(combined_output))
+        # print(f"combined_output shape: {combined_output.shape}")
         
-        return final_prediction 
-    
+        final_prediction = self.final_active(self.segmentation_head(combined_output))
+        # print(f"final_prediction shape: {final_prediction.shape}")
+        return final_prediction
     def get_embeddings(self, input):
         b_input = input[:, :int(self.in_channels/2), :, :]
         d_input = input[:, int(self.in_channels/2):, :, :]
-        b_encoder_out = self.model_b.encoder(b_input)
-        d_encoder_out = self.model_d.encoder(d_input)
-        b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
-        d_output = self.model_d.decoder(d_encoder_out) 
+        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
         combined_output = torch.cat((b_output,d_output),dim=1)
         return combined_output
+    # def forward(self,input):
+
+    #     b_input = input[:, :int(self.in_channels/2), :, :]
+    #     d_input = input[:, int(self.in_channels/2):, :, :]
+        
+    #     # === FIXED ===
+    #     b_encoder_out = self.model_b.encoder(b_input)
+    #     d_encoder_out = self.model_d.encoder(d_input)
+    #     b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
+    #     d_output = self.model_d.decoder(d_encoder_out)  # pass as single argument
+        
+    #     combined_output = torch.cat((b_output,d_output),dim=1)
+    #     final_prediction = self.final_active(self.segmentation_head(combined_output))
+        
+    #     return final_prediction 
+    
+    # def get_embeddings(self, input):
+    #     b_input = input[:, :int(self.in_channels/2), :, :]
+    #     d_input = input[:, int(self.in_channels/2):, :, :]
+    #     b_encoder_out = self.model_b.encoder(b_input)
+    #     d_encoder_out = self.model_d.encoder(d_input)
+    #     b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
+    #     d_output = self.model_d.decoder(d_encoder_out) 
+    #     combined_output = torch.cat((b_output,d_output),dim=1)
+    #     return combined_output
 
 # Ensemble Model with CAM (Contour Attention Map)
 class CAM(nn.Module):
