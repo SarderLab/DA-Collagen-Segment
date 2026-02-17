@@ -165,13 +165,13 @@ class FusionModel(nn.Module):
         b_input = input[:, :int(self.in_channels/2), :, :]
         d_input = input[:, int(self.in_channels/2):, :, :]
         
-        # # === FIXED ===
-        # b_encoder_out = self.model_b.encoder(b_input)
-        # d_encoder_out = self.model_d.encoder(d_input)
-        # b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
-        # d_output = self.model_d.decoder(d_encoder_out)  # pass as single argument
-        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
-        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))        
+        # === FIXED ===
+        b_encoder_out = self.model_b.encoder(b_input)
+        d_encoder_out = self.model_d.encoder(d_input)
+        b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
+        d_output = self.model_d.decoder(d_encoder_out)  # pass as single argument
+        # b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        # d_output = self.model_d.decoder(*self.model_d.encoder(d_input))        
         
         combined_output = torch.cat((b_output,d_output),dim=1)
         final_prediction = self.final_active(self.segmentation_head(combined_output))
