@@ -36,16 +36,16 @@ def compute_mmd(source_features, target_features):
     mmd_loss = torch.norm(source_mean - target_mean, p=2)
     return mmd_loss
 
-def get_current_consistency_weight(weight, epoch, rampup):
+def get_current_consistency_weight(weight, current_step, rampup):
     """Consistency ramp-up from https://arxiv.org/abs/1610.02242"""
-    return weight * sigmoid_rampup(epoch, rampup)
+    return weight * sigmoid_rampup(current_step, rampup)
 
-def sigmoid_rampup(current, rampup_length):
+def sigmoid_rampup(current_step, rampup_length):
     if rampup_length == 0:
         return 1.0
     else:
-        current = np.clip(current, 0.0, rampup_length)
-        phase = 1.0 - current / rampup_length
+        current_step = np.clip(current_step, 0.0, rampup_length)
+        phase = 1.0 - current_step / rampup_length
         return float(np.exp(-5.0 * phase * phase))
 
 def update_target_variables(source_model, target_model, alpha, global_step):
@@ -136,13 +136,15 @@ def TrainingDA_Loop(model_path, dataset_train_s, dataset_valid_s, dataset_train_
         #n_classes = len(ann_classes)
         n_classes = 1
 
-    elif target_type=='nonbinary':
+    elif target_type=='nonbinary': 
         if train_parameters['loss']=='MSE':
             loss = torch.nn.MSELoss(reduction='mean')
         elif train_parameters['loss'] == 'L1':
             loss = torch.nn.L1Loss(reduction='mean')
         elif train_parameters['loss'] == 'BCE':
             loss = torch.nn.BCELoss()
+        elif train_parameters['loss'] == 'Dice':
+            loss = smp.losses.DiceLoss(mode='binary')
         n_classes = 1
     
     # image_size = train_parameters["preprocessing"]["image_size"]
@@ -283,7 +285,10 @@ def TrainingDA_Loop(model_path, dataset_train_s, dataset_valid_s, dataset_train_
             
             # print("Source:", source_train_inputs.shape, source_train_masks.shape)
             source_train_preds = source_model(source_train_inputs)
-            seg_loss = structure_loss(source_train_preds,source_train_masks)
+            if train_parameters['train_loss'] == "structural_loss":
+                seg_loss = structure_loss(source_train_preds,source_train_masks)
+            else:
+                seg_loss = loss(source_train_preds, source_train_masks)
             
             # ---------------------------
             #  Multi-target unsupervised step

@@ -28,6 +28,7 @@ import gc
 from Input_Pipeline import *
 from Train import Training_Loop
 from TrainmultiDA import TrainingDA_Loop
+from TrainmultiADDA import TrainingADDA_Loop
 from TestmultiDA import Test_Network
 from Cluster import Clusterer
 
@@ -92,6 +93,8 @@ def main():
     
     # Get mode
     mode = parameters["mode"]
+    method =parameters.get("method","None")
+    # method = parameters["method"]
 
     if 'neptune' in input_parameters:
         nept_params = input_parameters['neptune']
@@ -314,15 +317,26 @@ def main():
                         dataset_valid_t_list.append(dataset_valid_t)
 
                     # --- Train the ADDA models for this fold ---
-                    modelsDA = TrainingDA_Loop(
-                        input_parameters["model_file"], 
-                        dataset_train_s=dataset_train, 
-                        dataset_valid_s=dataset_valid,
-                        dataset_train_t=dataset_train_t_list, 
-                        dataset_valid_t=dataset_valid_t_list,
-                        train_parameters=training_parameters,
-                        nept_run=nept_run
-                    )
+                    if method == "ADDA_DA": 
+                        modelsDA = TrainingADDA_Loop(
+                            input_parameters["model_file"], 
+                            dataset_train_s=dataset_train, 
+                            dataset_valid_s=dataset_valid,
+                            dataset_train_t=dataset_train_t_list, 
+                            dataset_valid_t=dataset_valid_t_list,
+                            train_parameters=training_parameters,
+                            nept_run=nept_run
+                        )
+                    else:
+                        modelsDA = TrainingDA_Loop(
+                            input_parameters["model_file"], 
+                            dataset_train_s=dataset_train, 
+                            dataset_valid_s=dataset_valid,
+                            dataset_train_t=dataset_train_t_list, 
+                            dataset_valid_t=dataset_valid_t_list,
+                            train_parameters=training_parameters,
+                            nept_run=nept_run
+                        )
 
                     # --- Test Source and Target models ---
                     training_parameters["model_details"]["target_type"] = "binary"
@@ -403,9 +417,26 @@ def main():
                 dataset_train_t = AttrSubset(dataset_train_all_t, train_idx)                
                 dataset_valid_t = AttrSubset(dataset_valid_all_t, val_idx)                
                 
-                modelDA = TrainingDA_Loop(input_parameters["model_file"], dataset_train, dataset_valid,
-                                              dataset_train_t, dataset_valid_t, 
-                                              training_parameters, nept_run)
+                if method == "ADDA_DA":
+                    modelDA = TrainingADDA_Loop(
+                        input_parameters["model_file"], 
+                        dataset_train, 
+                        dataset_valid,
+                        dataset_train_t, 
+                        dataset_valid_t, 
+                        training_parameters, 
+                        nept_run
+                    )
+                else:
+                    modelDA = TrainingDA_Loop(
+                        input_parameters["model_file"], 
+                        dataset_train, 
+                        dataset_valid,
+                        dataset_train_t, 
+                        dataset_valid_t, 
+                        training_parameters, 
+                        nept_run
+                    )
                 Test_Network(modelDA, dataset_valid_t, nept_run, training_parameters)
 
         elif 'training' in training_parameters['train_test_split']:
@@ -578,7 +609,9 @@ def main():
                 run_paths = image_paths[int(run*image_set_size):len(image_paths)]
             
             # print(run_paths)
-            if os.path.exists(input_parameters['label_dir']):    
+            # Check if 'label_dir' is a key in input_parameters and if it exists
+            if 'label_dir' in input_parameters.keys() and os.path.exists(input_parameters['label_dir']):
+            # if os.path.exists(input_parameters['label_dir']):    
                 if not int((run+1)*image_set_size)>=len(image_paths):   
                     label_paths_run = label_paths[int(run*image_set_size):int((run+1)*image_set_size)]
                 else:

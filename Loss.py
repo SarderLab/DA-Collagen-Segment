@@ -26,14 +26,15 @@ def dice_loss(pred, mask, epsilon=1e-6):
     dice = 1 - (2 * intersection + epsilon) / (union + epsilon)
     return dice.mean()  # Return average dice loss over the batch
 
-def structure_loss(pred, mask, alpha=0.4, beta=0.6, epsilon=1e-6):
+def structure_loss(pred, mask, beta_1=0.4, beta_2=0.6, epsilon=1e-6):
     # Compute weight map
-    weit = 1 + 5 * torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
+    # weit = 1 + 5 * torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
+    weit = torch.ones_like(mask)
     weit = weit / weit.sum(dim=(2, 3), keepdim=True)  # Normalize weights
     
     # Weighted MSE Loss
-    wbce = F.mse_loss(pred, mask, reduction='none')
-    wbce = (weit * wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
+    wmse = F.mse_loss(pred, mask, reduction='none')
+    wmse = (weit * wmse).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
     
     # # IoU Loss with stability    
     # inter = ((pred * mask) * weit).sum(dim=(2, 3))
@@ -41,13 +42,13 @@ def structure_loss(pred, mask, alpha=0.4, beta=0.6, epsilon=1e-6):
     # wiou = 1 - (inter + epsilon) / (union - inter + epsilon)
     
     # # Final Loss
-    # loss = alpha * wbce + beta * wiou
+    # loss = beta_1 * wmse + beta_2 * wiou
     
     # Dice loss
     dice = dice_loss(pred, mask)
     
     # Final Loss
-    loss = alpha * wbce + beta * dice
+    loss = beta_1 * wmse + beta_2 * dice
     return loss.mean()
 
 

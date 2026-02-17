@@ -32,7 +32,7 @@ class SEBlock(nn.Module):
         se = self.sigmoid(se)
         return x * se
 
-class EnsembleModelSE(nn.Module):
+class FusionModelSE(nn.Module):
     def __init__(self,
                  encoder_name,
                  encoder_weights,
@@ -110,7 +110,7 @@ class EnsembleModelSE(nn.Module):
         
         return final_prediction
         
-class EnsembleModel(nn.Module):
+class FusionModel(nn.Module):
     def __init__(self,
                  encoder_name,
                  encoder_weights,
@@ -164,6 +164,82 @@ class EnsembleModel(nn.Module):
 
         b_input = input[:, :int(self.in_channels/2), :, :]
         d_input = input[:, int(self.in_channels/2):, :, :]
+        
+        # # === FIXED ===
+        # b_encoder_out = self.model_b.encoder(b_input)
+        # d_encoder_out = self.model_d.encoder(d_input)
+        # b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
+        # d_output = self.model_d.decoder(d_encoder_out)  # pass as single argument
+        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))        
+        
+        combined_output = torch.cat((b_output,d_output),dim=1)
+        final_prediction = self.final_active(self.segmentation_head(combined_output))
+        
+        return final_prediction
+    def get_embeddings(self, input):
+        b_input = input[:, :int(self.in_channels/2), :, :]
+        d_input = input[:, int(self.in_channels/2):, :, :]
+        b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
+        d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
+        combined_output = torch.cat((b_output,d_output),dim=1)
+        return combined_output
+    
+
+class FusionModelUnet(nn.Module):
+    def __init__(self,
+                 encoder_name,
+                 encoder_weights,
+                 in_channels,
+                 active,
+                 n_classes,
+                 dropout_rate=0.1):
+        super().__init__()
+
+        self.encoder_name = encoder_name
+        self.encoder_weights = encoder_weights
+        self.in_channels = in_channels
+        self.active = active
+        self.n_classes = n_classes
+        self.dropout_rate = dropout_rate   
+        
+        if self.active == 'linear':
+            self.active = None
+            self.final_active = nn.Identity()
+        elif self.n_classes > 1:
+            self.final_active = nn.Softmax(dim=1)
+        elif self.n_classes == 1:
+            self.final_active = nn.Sigmoid()
+        else:
+            self.active = None
+            self.final_active = nn.ReLU()
+        
+        self.model_b = smp.Unet(
+            encoder_name = self.encoder_name,
+            encoder_weights = self.encoder_weights,
+            in_channels = int(self.in_channels/2),
+            classes = self.n_classes,
+            activation = self.active
+        )
+        
+        self.model_d = smp.Unet(
+            encoder_name = self.encoder_name,
+            encoder_weights = self.encoder_weights,
+            in_channels = int(self.in_channels/2),
+            classes = self.n_classes,
+            activation = self.active
+        )
+
+        self.segmentation_head = nn.Sequential(
+            nn.LazyConv2d(64, kernel_size=1),
+            nn.Dropout(p=self.dropout_rate),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, self.n_classes, kernel_size=1, bias=True)
+        )
+    def forward(self,input):
+
+        b_input = input[:, :int(self.in_channels/2), :, :]
+        d_input = input[:, int(self.in_channels/2):, :, :]
         # print(f"b_input shape: {b_input.shape}, d_input shape: {d_input.shape}")
         b_output = self.model_b.decoder(*self.model_b.encoder(b_input))
         d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
@@ -182,33 +258,8 @@ class EnsembleModel(nn.Module):
         d_output = self.model_d.decoder(*self.model_d.encoder(d_input))
         combined_output = torch.cat((b_output,d_output),dim=1)
         return combined_output
-    # def forward(self,input):
 
-    #     b_input = input[:, :int(self.in_channels/2), :, :]
-    #     d_input = input[:, int(self.in_channels/2):, :, :]
-        
-    #     # === FIXED ===
-    #     b_encoder_out = self.model_b.encoder(b_input)
-    #     d_encoder_out = self.model_d.encoder(d_input)
-    #     b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
-    #     d_output = self.model_d.decoder(d_encoder_out)  # pass as single argument
-        
-    #     combined_output = torch.cat((b_output,d_output),dim=1)
-    #     final_prediction = self.final_active(self.segmentation_head(combined_output))
-        
-    #     return final_prediction 
-    
-    # def get_embeddings(self, input):
-    #     b_input = input[:, :int(self.in_channels/2), :, :]
-    #     d_input = input[:, int(self.in_channels/2):, :, :]
-    #     b_encoder_out = self.model_b.encoder(b_input)
-    #     d_encoder_out = self.model_d.encoder(d_input)
-    #     b_output = self.model_b.decoder(b_encoder_out)  # pass as single argument
-    #     d_output = self.model_d.decoder(d_encoder_out) 
-    #     combined_output = torch.cat((b_output,d_output),dim=1)
-    #     return combined_output
-
-# Ensemble Model with CAM (Contour Attention Map)
+# Fusion Model with CAM (Contour Attention Map)
 class CAM(nn.Module):
     def __init__(self, channels=32):
         super(CAM, self).__init__()
@@ -273,7 +324,7 @@ class CAM(nn.Module):
         
         return f_cam_out
 
-class EnsembleModelCAM(nn.Module):
+class FusionModelCAM(nn.Module):
     def __init__(self,
                  encoder_name='resnet34',
                  encoder_weights='imagenet',
@@ -353,7 +404,7 @@ class EnsembleModelCAM(nn.Module):
         return final_prediction
 
 
-class EnsembleModelMIT(nn.Module):
+class FusionModelMIT(nn.Module):
     def __init__(self,
                  encoder_name,
                 encoder_weights,
@@ -421,7 +472,7 @@ class EnsembleModelMIT(nn.Module):
         
         return final_prediction
 
-class EnsembleModelMAnet(nn.Module):
+class FusionModelMAnet(nn.Module):
     def __init__(self,
                  encoder_name,
                 encoder_weights,
@@ -520,42 +571,7 @@ class DeepSegmentationHead(nn.Sequential):
             Activation(activation) if activation else nn.Identity(),
         ]
         super().__init__(*layers)
-
-
-
-
-class Discriminator(nn.Module):
-  """
-  Simple Discriminator network for domain adaptation with He initialization.
-  """
-  def __init__(self, in_channels, hidden_dim):
-    super(Discriminator, self).__init__()
-    # Define layers for feature extraction and classification
-    self.layers = nn.Sequential(
-        nn.Conv2d(in_channels, hidden_dim, kernel_size=3, padding=1),
-        nn.LeakyReLU(0.2),
-        nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1),
-        nn.LeakyReLU(0.2),
-        nn.Conv2d(hidden_dim, 1, kernel_size=3, padding=1)
-    )
-
-    # Apply He initialization to convolutional layers
-    for layer in self.layers:
-      if isinstance(layer, nn.Conv2d):
-        init.kaiming_normal_(layer.weight, mode='fan_in', nonlinearity='leaky_relu')
-
-  def forward(self, x):
-    """
-    Forward pass through the Discriminator network.
-
-    Args:
-        x: Input feature representation (tensor).
-
-    Returns:
-        Discriminator output (tensor).
-    """
-    return torch.sigmoid(self.layers(x))
-
+        
 class CrossAttention(nn.Module):
     def __init__(self, in_channels):
         super(CrossAttention, self).__init__()
@@ -667,6 +683,157 @@ class HeInitLazyConv2d(nn.Module):
       init.kaiming_normal_(self.conv.weight, mode='fan_in', nonlinearity='relu')
     return self.conv(x)
 
+
+class Discriminator(nn.Module):
+  """
+  Simple Discriminator network for domain adaptation with He initialization.
+  """
+  def __init__(self, in_channels, hidden_dim):
+    super(Discriminator, self).__init__()
+    # Define layers for feature extraction and classification
+    self.layers = nn.Sequential(
+        nn.Conv2d(in_channels, hidden_dim, kernel_size=3, padding=1),
+        nn.LeakyReLU(0.2),
+        nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1),
+        nn.LeakyReLU(0.2),
+        nn.Conv2d(hidden_dim, 1, kernel_size=3, padding=1)
+    )
+
+    # Apply He initialization to convolutional layers
+    for layer in self.layers:
+      if isinstance(layer, nn.Conv2d):
+        init.kaiming_normal_(layer.weight, mode='fan_in', nonlinearity='leaky_relu')
+
+  def forward(self, x):
+    """
+    Forward pass through the Discriminator network.
+
+    Args:
+        x: Input feature representation (tensor).
+
+    Returns:
+        Discriminator output (tensor).
+    """
+    return torch.sigmoid(self.layers(x))
+
+class ADDA_DA(nn.Module):
+    """
+    ADDA wrapper:
+        - FusionModel Gs (source generator)
+        - FusionModel Gt (target generator)
+        - Discriminator D
+    Unified single forward(mode="...") function.
+    """
+    def __init__(self,
+                 encoder_name,
+                 encoder_weights,
+                 in_channels,
+                 n_classes,
+                 dropout_rate=0.1,
+                 disc_hidden_dim=128):
+        
+        super().__init__()
+
+        # SOURCE GENERATOR
+        self.Gs = FusionModel(
+            encoder_name=encoder_name,
+            encoder_weights=encoder_weights,
+            in_channels=in_channels,
+            active=None,
+            n_classes=n_classes,
+            dropout_rate=dropout_rate,
+        )
+
+        # TARGET GENERATOR
+        self.Gt = FusionModel(
+            encoder_name=encoder_name,
+            encoder_weights=encoder_weights,
+            in_channels=in_channels,
+            active=None,
+            n_classes=n_classes,
+            dropout_rate=dropout_rate,
+        )
+
+        # Determine discriminator input channels via probe
+        dummy = torch.randn(1, in_channels, 128, 128)
+        with torch.no_grad():
+            emb = self.Gs.get_embeddings(dummy)
+        emb_channels = emb.shape[1]
+
+        # DISCRIMINATOR
+        self.D = Discriminator(in_channels=emb_channels,
+                               hidden_dim=disc_hidden_dim)
+
+        # LOSSES
+        # self.seg_loss = nn.BCEWithLogitsLoss() if n_classes == 1 else nn.CrossEntropyLoss()
+        self.seg_loss = nn.MSELoss(reduction='mean')
+        self.adv_loss = nn.BCELoss()
+
+    # ------------------------------------------------------------------
+    # FORWARD FUNCTION
+    # ------------------------------------------------------------------
+    def forward(self, x_s=None, x_t=None, y_s=None, mode=None):
+        """
+        Unified multi-function forward.
+        
+        mode options:
+            - "seg_source"  : returns segmentation loss on source
+            - "disc"        : returns discriminator loss on source+target
+            - "gen_t"       : returns adversarial generator loss for target
+        """
+        # ---------------------------------------------------------
+        # 1. SOURCE SUPERVISED SEGMENTATION
+        # ---------------------------------------------------------
+        if mode == "seg_source":
+            if x_s is None or y_s is None:
+                raise ValueError("seg_source requires x_s and y_s")
+
+            pred_s = self.Gs(x_s)
+            loss = self.seg_loss(pred_s, y_s)
+            return loss, pred_s
+
+        # ---------------------------------------------------------
+        # 2. DISCRIMINATOR TRAINING (SOURCE = 1, TARGET = 0)
+        # ---------------------------------------------------------
+        elif mode == "disc":
+            if x_s is None or x_t is None:
+                raise ValueError("disc mode requires x_s and x_t")
+
+            with torch.no_grad():
+                feat_s = self.Gs.get_embeddings(x_s)
+                feat_t = self.Gt.get_embeddings(x_t)
+
+            pred_s = self.D(feat_s)
+            pred_t = self.D(feat_t)
+
+            labels_s = torch.ones_like(pred_s)
+            labels_t = torch.zeros_like(pred_t)
+
+            loss_s = self.adv_loss(pred_s, labels_s)
+            loss_t = self.adv_loss(pred_t, labels_t)
+
+            return loss_s + loss_t, pred_s, pred_t
+
+        # ---------------------------------------------------------
+        # 3. GENERATOR TARGET ADVERSARIAL TRAINING
+        # ---------------------------------------------------------
+        elif mode == "gen_t":
+            if x_t is None:
+                raise ValueError("gen_t mode requires x_t")
+
+            feat_t = self.Gt.get_embeddings(x_t)
+            pred_t = self.D(feat_t)
+
+            # fool the discriminator: want source label = 1
+            labels = torch.ones_like(pred_t)
+            loss = self.adv_loss(pred_t, labels)
+
+            return loss, pred_t
+
+        # ---------------------------------------------------------
+        else:
+            raise ValueError(f"Unknown mode: {mode}")
+
 def create_model(model_details, n_classes):
     
     if model_details['architecture']=='Unet++':
@@ -678,16 +845,24 @@ def create_model(model_details, n_classes):
             activation = model_details['active']
             )
         
-    elif model_details['architecture']=='ensemble':
-        model = EnsembleModel(
+    elif model_details['architecture']=='fusion':
+        model = FusionModel(
             encoder_name = model_details['encoder'],
             encoder_weights = model_details['encoder_weights'],        
             in_channels = model_details['in_channels'],
             active = model_details['active'],
             n_classes = n_classes
             )
-    elif model_details['architecture']=='ensembleCAM':
-        model = EnsembleModelCAM(
+    elif model_details['architecture']=='fusionUnet':
+        model = FusionModelUnet(
+            encoder_name = model_details['encoder'],
+            encoder_weights = model_details['encoder_weights'],
+            in_channels = model_details['in_channels'],
+            active = model_details['active'],
+            n_classes = n_classes
+            )
+    elif model_details['architecture']=='fusionCAM':
+        model = FusionModelCAM(
             encoder_name = model_details['encoder'],
             encoder_weights = model_details['encoder_weights'],        
             in_channels = model_details['in_channels'],
@@ -695,16 +870,16 @@ def create_model(model_details, n_classes):
             n_classes = n_classes
             )
        
-    elif model_details['architecture']=='ensembleMIT':
-        model = EnsembleModelMIT(
+    elif model_details['architecture']=='fusionMIT':
+        model = FusionModelMIT(
             encoder_name = model_details['encoder'],
             encoder_weights = model_details['encoder_weights'],
             in_channels = model_details['in_channels'],
             active = model_details['active'],
             n_classes = n_classes
             )
-    elif model_details['architecture']=='ensembleMAnet':
-        model = EnsembleModelMAnet(
+    elif model_details['architecture']=='fusionMAnet':
+        model = FusionModelMAnet(
             encoder_name = model_details['encoder'],
             encoder_weights = model_details['encoder_weights'],
             in_channels = model_details['in_channels'],
@@ -712,13 +887,30 @@ def create_model(model_details, n_classes):
             n_classes = n_classes
         )
     
-    elif model_details['architecture'] == 'ensembleSE':
-        model = EnsembleModelSE(
+    elif model_details['architecture'] == 'fusionSE':
+        model = FusionModelSE(
             encoder_name = model_details['encoder'],
             encoder_weights = model_details['encoder_weights'],
             in_channels = model_details['in_channels'],
             active = model_details['active'],
             n_classes = n_classes
         )
+    elif model_details['architecture'] == 'attention':
+        model = AttentionModel(
+            in_channels = model_details['in_channels'],
+            active = model_details['active'],
+            n_classes = n_classes
+        )
+    elif model_details['architecture']=='ADDA_DA':
+        model = ADDA_DA(
+            encoder_name = model_details['encoder'],
+            encoder_weights = model_details['encoder_weights'],
+            in_channels = model_details['in_channels'],
+            n_classes = n_classes,
+            dropout_rate = model_details.get('dropout_rate', 0.1),
+            disc_hidden_dim = model_details.get('disc_hidden_dim', 128)
+        )
+    else:
+        raise ValueError(f"Unknown architecture: {model_details['architecture']}")
     
     return model

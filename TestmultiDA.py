@@ -34,20 +34,27 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
     if active == 'None':
         active = None
 
-    n_classes = 1  # binary or nonbinary
+    n_classes = 1  # binary or nonbinary 
     in_channels = int(test_parameters['preprocessing']['image_size'].split(',')[-1])
     output_type = 'prediction'
 
     device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
     
+    # if model_details.get('architecture') == 'ADDA_DA':
+    #     print("Using ADDA_DA architecture for testing.")
+    #     # Create and load the Gt/Gs model 
+    #     model_details_copy = model_details.copy()
+    #     model_details_copy['architecture'] = 'fusion'
+    #     model = create_model(model_details_copy, n_classes)
+    # else:        
     model = create_model(model_details, n_classes)
     state_dict = torch.load(model_path, map_location=device)
         
     # Rename 'combine_layers' to 'segmentation_head' if present
-    if 'combine_layers.weight' in state_dict:
-        state_dict['segmentation_head.weight'] = state_dict.pop('combine_layers.weight')
-    if 'combine_layers.bias' in state_dict:
-        state_dict['segmentation_head.bias'] = state_dict.pop('combine_layers.bias')
+    # if 'combine_layers.weight' in state_dict:
+    #     state_dict['segmentation_head.weight'] = state_dict.pop('combine_layers.weight')
+    # if 'combine_layers.bias' in state_dict:
+    #     state_dict['segmentation_head.bias'] = state_dict.pop('combine_layers.bias')
     
     missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
     if missing_keys:
@@ -55,7 +62,7 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
     if unexpected_keys:
         print(f"Unexpected keys: {unexpected_keys}")
 
-    torch.save(model.state_dict(), model_path)
+    # torch.save(model.state_dict(), model_path)
     print(f"Loading model from {model_path}")    
     print("Model successfully loaded!")
     
@@ -104,7 +111,7 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                 for i in range(len(ds)):
                     sample = ds[i]
 
-                    # ---------------- Patch Prediction ----------------
+                    # ---------------- Patch Prediction Large Tiles----------------
                     if ds.patch_batch:  
                         image_list, _, patch_id_list = sample
                         original_image_size = ds.original_size
@@ -128,26 +135,28 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                             if pred_mask_np.ndim == 4:
                                 pred_mask_np = pred_mask_np[0, 0, :, :]
                             pred_mask_np = cv2.normalize(pred_mask_np, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+                            
+                            if "postprocessing" in test_parameters.keys() and test_parameters["postprocessing"]["threshold"] > 0:
+                                threshold = test_parameters["postprocessing"]["threshold"]
+                                img_F = image[0].cpu().numpy().transpose(1, 2, 0)
 
-                            img_F = image[0].cpu().numpy().transpose(1, 2, 0)
+                                # --- Select correct fluorescent green channel ---
+                                if transform_type in ['multi_input_green', 'multi_input_mean', 'multi_input_green_invbf', 'multi_input_green_rgb']:
+                                    green_F = img_F[:, :, 0]
+                                elif transform_type == 'multi_input_rgb':
+                                    green_F = img_F[:, :, 1]
+                                else:
+                                    green_F = img_F[:, :, 0]  # default fallback
 
-                            # --- Select correct fluorescent green channel ---
-                            if transform_type in ['multi_input_green', 'multi_input_mean', 'multi_input_green_invbf', 'multi_input_green_rgb']:
-                                green_F = img_F[:, :, 0]
-                            elif transform_type == 'multi_input_rgb':
-                                green_F = img_F[:, :, 1]
-                            else:
-                                green_F = img_F[:, :, 0]  # default fallback
+                                green_F_uint8 = (green_F * 255).astype(np.uint8)
+                                _, binary_F = cv2.threshold(green_F_uint8, threshold, 255, cv2.THRESH_BINARY)
 
-                            green_F_uint8 = (green_F * 255).astype(np.uint8)
-                            _, binary_F = cv2.threshold(green_F_uint8, 70, 255, cv2.THRESH_BINARY)
+                                if binary_F.shape != pred_mask_np.shape:
+                                    binary_F = cv2.resize(binary_F, (pred_mask_np.shape[1], pred_mask_np.shape[0]), interpolation=cv2.INTER_NEAREST)
 
-                            if binary_F.shape != pred_mask_np.shape:
-                                binary_F = cv2.resize(binary_F, (pred_mask_np.shape[1], pred_mask_np.shape[0]), interpolation=cv2.INTER_NEAREST)
-
-                            multiplied = cv2.multiply(binary_F, pred_mask_np)
-                            multiplied_norm = cv2.normalize(multiplied, None, 0, 255, cv2.NORM_MINMAX)
-                            blurred = cv2.GaussianBlur(multiplied_norm, (5, 5), 0)
+                                multiplied = cv2.multiply(binary_F, pred_mask_np)
+                                multiplied_norm = cv2.normalize(multiplied, None, 0, 255, cv2.NORM_MINMAX)
+                                pred_mask_np = cv2.GaussianBlur(multiplied_norm, (5, 5), 0)
 
                             # Latent features
                             if test_parameters['model_details']['scaler_means'] is not None:
@@ -160,8 +169,8 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                                 clustering_labels.append({'Full_Image_Name': image_name, 'Patch_Name': patch_id})
 
                             row_start = int(patch_id.split('_')[-2])
-                            col_start = int(patch_id.split('_')[-1])
-                            final_pred_mask[row_start:row_start+patch_size[0], col_start:col_start+patch_size[1]] += blurred
+                            col_start = int(patch_id.split('_')[-1])                            
+                            final_pred_mask[row_start:row_start+patch_size[0], col_start:col_start+patch_size[1]] += pred_mask_np
                             overlap_mask[row_start:row_start+patch_size[0], col_start:col_start+patch_size[1]] += 1
                             pbar.update(1)
 
@@ -171,7 +180,7 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                         im = im.filter(ImageFilter.SMOOTH_MORE)
                         im.save(os.path.join(ds_pred_dir, save_name))  # save as JPG
 
-                    # ---------------- Small Image Prediction ----------------
+                    # ---------------- Small Patched Image Prediction ----------------
                     else:
                         image, target, input_name = sample
                         input_name = os.path.basename(input_name)
@@ -181,7 +190,11 @@ def Test_Network(model_path, dataset_valid, nept_run, test_parameters):
                         save_name = base_name + ".jpg"  # save as JPG
 
                         image = image[None, :, :, :]
-                        pred_mask = model(image.to(device))
+                        if model_details.get("architecture") == "ADDA_DA":
+                            assert hasattr(model, "Gt"), "ADDA_DA model must expose Gt"
+                            pred_mask = model.Gt(image.to(device))
+                        else:
+                            pred_mask = model(image.to(device))
 
                         # --- Process green channel × binary ---
                         pred_mask_np = pred_mask.detach().cpu().numpy()

@@ -15,11 +15,12 @@ from torch.utils.data import DataLoader
 from PIL import Image
 import pandas as pd
 from tqdm import tqdm
+from Models import create_model
 import sys
 import os
 
 from Utils import visualize_continuous
-from Models import EnsembleModel, EnsembleModelMIT, AttentionModel
+from Models import FusionModel, FusionModelMIT, AttentionModel, FusionModelUnet
     
 def Training_Loop(dataset_train, dataset_valid, train_parameters, nept_run):
     
@@ -72,34 +73,7 @@ def Training_Loop(dataset_train, dataset_valid, train_parameters, nept_run):
     nept_run['output_type'] = output_type
     nept_run['lr'] = train_parameters['lr']
     
-    if model_details['architecture']=='Unet++':
-        model = smp.UnetPlusPlus(
-                encoder_name = encoder,
-                encoder_weights = encoder_weights,
-                in_channels = in_channels,
-                classes = n_classes,
-                activation = active
-                )
-    elif model_details['architecture']=='ensemble':
-        model = EnsembleModel(
-            encoder_name = encoder,
-            encoder_weights = encoder_weights,
-            in_channels = in_channels,
-            active = active,
-            n_classes = n_classes
-            )
-    elif model_details['architecture']=='ensembleMIT':
-        model = EnsembleModelMIT(            
-            in_channels = in_channels,
-            active = active,
-            n_classes = n_classes
-            )
-    elif model_details['architecture'] == 'attention':
-        model = AttentionModel(
-            in_channels = in_channels,
-            active = active,
-            n_classes = n_classes
-            )
+    model = create_model(model_details, n_classes)
         
     optimizer = torch.optim.Adam([
             dict(params = model.parameters(), lr = train_parameters['lr'],weight_decay = 0.0001)

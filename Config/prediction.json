@@ -1,32 +1,31 @@
 {
-    "mode": "None",
+    "mode": "ADDA",
     "input_parameters": {
-        "mode": "None",
+        "mode": "ADDA",
         "phase": "test",
         "type": "multi",
-        "label_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/C",
         "image_dir": {
-            "DUET": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/F",
-            "Brightfield": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Data_Version_6/UCD_PATH/B"
-        },
-        "output_dir": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_6_Results/2_Source_Only/CGPL_UCD_PATH_source_model",
-        "model_file": "/blue/pinaki.sarder/narra.sr/8_DUET_Data/Dataset_Version_6_Results/Production_CGPL_UCD_PATH/models/Collagen_Seg_Model_Latest.pth",
+            "DUET": "/orange/pinaki.sarder/f.afsari/4-DUET/vTrichorome/F",
+            "Brightfield": "/orange/pinaki.sarder/f.afsari/4-DUET/vTrichorome/B"
+        },        
+        "output_dir": "/orange/pinaki.sarder/f.afsari/4-DUET/vTrichorome/C",
+        "model_file": "/blue/pinaki.sarder/f.afsari/4-DUET/DUET UCD PATH vs CGPL/UCD-PATH/NormalizedF/Results/Ensemble_DA_V0_G/models/Collagen_Seg_Model_S_Latest.pth",
         "preprocessing": {
             "image_size": "512,512,2",
             "mask_size": "512,512,1",
             "color_transform": "multi_input_green"
         },
         "model_details": {
-            "architecture": "ensemble",
+            "architecture": "fusion",
             "encoder": "resnet34",
             "encoder_weights": "imagenet",
-            "dropout_rate": 0.25,
-            "pretrained": 1,
             "active": "sigmoid",
             "target_type": "binary",
             "in_channels": 2,
-            "ann_classes": ["background","collagen"]
+            "ann_classes": "background,collagen"
         },
-        "skip_duplicates": true
+        "postprocessing": {
+            "threshold": 0
+        }
     }
 }
