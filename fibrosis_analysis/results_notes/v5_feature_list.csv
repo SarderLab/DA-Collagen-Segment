@@ -1,0 +1,60 @@
+feature,group,measured_on,per_biopsy_summary,meaning
+collagen_iqr,Collagen amount and shape,collagen mask (M > 0.5),IQR over tiles with >= 50% tissue,tile-to-tile spread of collagen fraction (patchiness)
+collagen_median,Collagen amount and shape,collagen mask (M > 0.5),median over tiles with >= 50% tissue,typical per-tile collagen fraction
+collagen_ratio,Collagen amount and shape,collagen mask (M > 0.5),area-weighted over all tiles,collagen area / tissue area for the whole biopsy
+collagen_thickness_iqr,Collagen amount and shape,collagen mask skeleton,IQR over tiles with >= 50% tissue,tile-to-tile spread of strand thickness
+collagen_thickness_mean,Collagen amount and shape,collagen mask skeleton,mean over tiles with >= 50% tissue,collagen strand thickness (2 x distance to edge along the skeleton; relative)
+collagen_thickness_median,Collagen amount and shape,collagen mask skeleton,median over tiles with >= 50% tissue,typical strand thickness
+m_collagen_mean_iqr,Collagen amount and shape,model output M inside the collagen mask,IQR over tiles with >= 50% tissue,tile-to-tile spread of model confidence inside collagen
+m_collagen_mean_mean,Collagen amount and shape,model output M inside the collagen mask,mean over tiles with >= 50% tissue,model confidence inside collagen
+m_density,Collagen amount and shape,"model output M (0-1) over tissue, glomeruli excluded","sum M / tissue area, all tiles",soft collagen fraction: every pixel counts by the model's collagen probability
+m_mean_iqr,Collagen amount and shape,model output M over tissue,IQR over tiles with >= 50% tissue,M variability: tile-to-tile spread of soft collagen fraction
+m_mean_mean,Collagen amount and shape,model output M over tissue,mean over tiles with >= 50% tissue,average per-tile soft collagen fraction
+f_contrast_iqr,DUET fluorescence,DUET green inside the collagen mask,IQR over tiles with >= 50% tissue,texture: contrast (how different neighbouring pixels are) (tile-to-tile spread)
+f_contrast_mean,DUET fluorescence,DUET green inside the collagen mask,mean over tiles with >= 50% tissue,texture: contrast (how different neighbouring pixels are)
+f_correlation_iqr,DUET fluorescence,DUET green inside the collagen mask,IQR over tiles with >= 50% tissue,texture: correlation (how predictable a pixel is from its neighbour) (tile-to-tile spread)
+f_correlation_mean,DUET fluorescence,DUET green inside the collagen mask,mean over tiles with >= 50% tissue,texture: correlation (how predictable a pixel is from its neighbour)
+f_energy_iqr,DUET fluorescence,DUET green inside the collagen mask,IQR over tiles with >= 50% tissue,texture: energy (how regular / repetitive the pattern is) (tile-to-tile spread)
+f_energy_mean,DUET fluorescence,DUET green inside the collagen mask,mean over tiles with >= 50% tissue,texture: energy (how regular / repetitive the pattern is)
+f_homogeneity_iqr,DUET fluorescence,DUET green inside the collagen mask,IQR over tiles with >= 50% tissue,texture: homogeneity (how similar neighbouring pixels are) (tile-to-tile spread)
+f_homogeneity_mean,DUET fluorescence,DUET green inside the collagen mask,mean over tiles with >= 50% tissue,texture: homogeneity (how similar neighbouring pixels are)
+f_mean_intensity_iqr,DUET fluorescence,DUET green inside the collagen mask,IQR over tiles with >= 50% tissue,brightness (tile-to-tile spread)
+f_mean_intensity_mean,DUET fluorescence,DUET green inside the collagen mask,mean over tiles with >= 50% tissue,brightness
+f_std_intensity_iqr,DUET fluorescence,DUET green inside the collagen mask,IQR over tiles with >= 50% tissue,pixel-to-pixel brightness spread (tile-to-tile spread)
+f_std_intensity_mean,DUET fluorescence,DUET green inside the collagen mask,mean over tiles with >= 50% tissue,pixel-to-pixel brightness spread
+fw_mean_intensity_iqr,DUET fluorescence,"DUET green over tissue, weighted by CE",IQR over tiles with >= 50% tissue,brightness (tile-to-tile spread)
+fw_mean_intensity_mean,DUET fluorescence,"DUET green over tissue, weighted by CE",mean over tiles with >= 50% tissue,brightness
+fw_std_intensity_iqr,DUET fluorescence,"DUET green over tissue, weighted by CE",IQR over tiles with >= 50% tissue,pixel-to-pixel brightness spread (tile-to-tile spread)
+fw_std_intensity_mean,DUET fluorescence,"DUET green over tissue, weighted by CE",mean over tiles with >= 50% tissue,pixel-to-pixel brightness spread
+ce_collagen_density,Collagen x fluorescence (CE),CE inside the collagen mask,"sum / tissue area, all tiles","collagen density (CE): CE-weighted collagen amount, haze outside collagen excluded"
+ce_collagen_mean_iqr,Collagen x fluorescence (CE),CE inside the collagen mask,IQR over tiles with >= 50% tissue,brightness (tile-to-tile spread)
+ce_collagen_mean_mean,Collagen x fluorescence (CE),CE inside the collagen mask,mean over tiles with >= 50% tissue,brightness
+ce_collagen_std_iqr,Collagen x fluorescence (CE),CE inside the collagen mask,IQR over tiles with >= 50% tissue,pixel-to-pixel spread (tile-to-tile spread)
+ce_collagen_std_mean,Collagen x fluorescence (CE),CE inside the collagen mask,mean over tiles with >= 50% tissue,pixel-to-pixel spread
+ce_contrast_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,texture: contrast (how different neighbouring pixels are) (tile-to-tile spread)
+ce_contrast_mean,Collagen x fluorescence (CE),CE over tissue,mean over tiles with >= 50% tissue,texture: contrast (how different neighbouring pixels are)
+ce_correlation_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,texture: correlation (how predictable a pixel is from its neighbour) (tile-to-tile spread)
+ce_correlation_mean,Collagen x fluorescence (CE),CE over tissue,mean over tiles with >= 50% tissue,texture: correlation (how predictable a pixel is from its neighbour)
+ce_density,Collagen x fluorescence (CE),CE (0-1) over tissue,"sum CE / tissue area, all tiles","collagen amount weighted by green brightness, no threshold"
+ce_density_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,tile-to-tile spread of CE density
+ce_density_median,Collagen x fluorescence (CE),CE over tissue,median over tiles with >= 50% tissue,typical per-tile CE density
+ce_energy_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,texture: energy (how regular / repetitive the pattern is) (tile-to-tile spread)
+ce_energy_mean,Collagen x fluorescence (CE),CE over tissue,mean over tiles with >= 50% tissue,texture: energy (how regular / repetitive the pattern is)
+ce_homogeneity_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,texture: homogeneity (how similar neighbouring pixels are) (tile-to-tile spread)
+ce_homogeneity_mean,Collagen x fluorescence (CE),CE over tissue,mean over tiles with >= 50% tissue,texture: homogeneity (how similar neighbouring pixels are)
+ce_p90_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,90th-percentile value (bright end) (tile-to-tile spread)
+ce_p90_mean,Collagen x fluorescence (CE),CE over tissue,mean over tiles with >= 50% tissue,90th-percentile value (bright end)
+ce_std_iqr,Collagen x fluorescence (CE),CE over tissue,IQR over tiles with >= 50% tissue,pixel-to-pixel spread (tile-to-tile spread)
+ce_std_mean,Collagen x fluorescence (CE),CE over tissue,mean over tiles with >= 50% tissue,pixel-to-pixel spread
+b_contrast_iqr,H&E,H&E eosin channel inside the collagen mask,IQR over tiles with >= 50% tissue,texture: contrast (how different neighbouring pixels are) (tile-to-tile spread)
+b_contrast_mean,H&E,H&E eosin channel inside the collagen mask,mean over tiles with >= 50% tissue,texture: contrast (how different neighbouring pixels are)
+b_correlation_iqr,H&E,H&E eosin channel inside the collagen mask,IQR over tiles with >= 50% tissue,texture: correlation (how predictable a pixel is from its neighbour) (tile-to-tile spread)
+b_correlation_mean,H&E,H&E eosin channel inside the collagen mask,mean over tiles with >= 50% tissue,texture: correlation (how predictable a pixel is from its neighbour)
+b_energy_iqr,H&E,H&E eosin channel inside the collagen mask,IQR over tiles with >= 50% tissue,texture: energy (how regular / repetitive the pattern is) (tile-to-tile spread)
+b_energy_mean,H&E,H&E eosin channel inside the collagen mask,mean over tiles with >= 50% tissue,texture: energy (how regular / repetitive the pattern is)
+b_homogeneity_iqr,H&E,H&E eosin channel inside the collagen mask,IQR over tiles with >= 50% tissue,texture: homogeneity (how similar neighbouring pixels are) (tile-to-tile spread)
+b_homogeneity_mean,H&E,H&E eosin channel inside the collagen mask,mean over tiles with >= 50% tissue,texture: homogeneity (how similar neighbouring pixels are)
+b_mean_intensity_iqr,H&E,H&E eosin channel inside the collagen mask,IQR over tiles with >= 50% tissue,brightness (tile-to-tile spread)
+b_mean_intensity_mean,H&E,H&E eosin channel inside the collagen mask,mean over tiles with >= 50% tissue,brightness
+b_std_intensity_iqr,H&E,H&E eosin channel inside the collagen mask,IQR over tiles with >= 50% tissue,pixel-to-pixel brightness spread (tile-to-tile spread)
+b_std_intensity_mean,H&E,H&E eosin channel inside the collagen mask,mean over tiles with >= 50% tissue,pixel-to-pixel brightness spread

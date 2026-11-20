@@ -1,0 +1,69 @@
+{
+    "clinical": "./data/analysis_ready_clinical.csv",
+    "collagen": "./data/T0_T1_v5_M_values/collagen_scores.csv",
+    "extra_features": [
+        "./data/T0_T1_v5_M_values/previous_otsu_features.csv"
+    ],
+    "slide_aliases": {
+        "99H-0": "99H2-0"
+    },
+    "exposures": [
+        "collagen_ratio",
+        "collagen_iqr",
+        "m_density",
+        "m_mean_iqr"
+    ],
+    "classifier": "logistic",
+    "xgb_params": {
+        "max_depth": 1,
+        "n_estimators": 30
+    },
+    "out_dir": "./results/v8_M_values",
+    "egfr_series": "./data/T0T1 Clinical Data Cleaned 7-27-2026.csv",
+    "lmm_knot_years": 1.0,
+    "lmm_slope_covariates": [
+        "recipient_age_tx",
+        "recipient_sex_male"
+    ],
+    "lmm_baseline_covariates": [],
+    "lmm_sensitivity_covariates": {
+        "slope": [
+            "recipient_age_tx",
+            "recipient_sex_male",
+            "donor_age"
+        ],
+        "baseline": [
+            "cold_ischemia_min"
+        ]
+    },
+    "lmm_predictors": [
+        "m_density",
+        "m_mean_iqr",
+        "m_collagen_mean_mean",
+        "collagen_ratio",
+        "collagen_iqr",
+        "f_mean_intensity_iqr",
+        "collagen_ratio_otsu",
+        "ce_density_otsu",
+        "f_mean_intensity_iqr_otsu"
+    ],
+    "lmm_joint_predictors": [
+        "m_density",
+        "m_mean_iqr"
+    ],
+    "lmm_references": [
+        "ci",
+        "if_pct"
+    ],
+    "lmm_random_effects": "auto",
+    "lmm_exclude_imputed": true,
+    "lmm_feature_groups": {
+        "M collagen": [
+            "m_density",
+            "m_mean_iqr"
+        ],
+        "fluorescence": [
+            "f_mean_intensity_iqr"
+        ]
+    }
+}
